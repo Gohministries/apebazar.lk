@@ -1,0 +1,528 @@
+
+const GOOGLE_CLIENT_ID = "582157960266-mvlpmqne90d9q7ja5vuhi3g1aspvtp86.apps.googleusercontent.com";
+const ROLES = ["SUPER_ADMIN", "AD_MODERATOR", "CATEGORY_ADMIN", "VIEWER"];
+
+const allowedOrigins = env => [
+  "https://apebazar.lk",
+  "https://www.apebazar.lk",
+  ...String(env.ALLOWED_ORIGINS || "").split(",").map(x => x.trim()).filter(Boolean)
+];
+
+const json = (data, status = 200, origin = "https://apebazar.lk") =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store",
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Methods": "GET,POST,PUT,OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type,Authorization",
+      "Vary": "Origin"
+    }
+  });
+
+const clean = (v, n = 2000) => String(v ?? "").trim().slice(0, n);
+const idOf = v => Number.isSafeInteger(Number(v)) && Number(v) > 0 ? Number(v) : null;
+
+async function body(req) {
+  try { return await req.json(); }
+  catch { throw new Error("Invalid JSON body."); }
+}
+
+async function hash(value) {
+  const bytes = await crypto.subtle.digest(
+    "SHA-256", new TextEncoder().encode(value)
+  );
+  return [...new Uint8Array(bytes)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function token() {
+  return [...crypto.getRandomValues(new Uint8Array(32))]
+    .map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function admin(req, env, roles = ROLES) {
+  const auth = req.headers.get("Authorization") || "";
+  if (!auth.startsWith("Bearer ")) throw new Error("UNAUTHORIZED");
+
+  const user = await env.DB.prepare(`
+    SELECT u.id, u.email, u.name, u.role
+    FROM admin_sessions s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.token_hash = ?
+      AND julianday(s.expires_at) > julianday('now')
+    LIMIT 1
+  `).bind(await hash(auth.slice(7).trim())).first();
+
+  if (!user) throw new Error("UNAUTHORIZED");
+  if (!roles.includes(user.role)) throw new Error("FORBIDDEN");
+  return user;
+}
+
+async function googleLogin(req, env, origin) {
+  const b = await body(req);
+  if (!b.credential) return json({ error: "Google credential required." }, 400, origin);
+
+  const url = new URL("https://oauth2.googleapis.com/tokeninfo");
+  url.searchParams.set("id_token", b.credential);
+  const response = await fetch(url);
+
+  if (!response.ok) return json({ error: "Google login verification failed." }, 401, origin);
+
+  const p = await response.json();
+  const clientId = env.GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID;
+
+  if (p.aud !== clientId || String(p.email_verified) !== "true" || !p.email || !p.sub) {
+    return json({ error: "Invalid Google account." }, 401, origin);
+  }
+
+  const email = clean(p.email, 254).toLowerCase();
+  const allowlist = String(env.ADMIN_EMAILS || "")
+    .split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
+
+  if (!allowlist.length) {
+    return json({ error: "Configure ADMIN_EMAILS in Worker settings." }, 500, origin);
+  }
+
+  let user = await env.DB.prepare(
+    "SELECT * FROM users WHERE lower(email)=? LIMIT 1"
+  ).bind(email).first();
+
+  if (allowlist.includes(email)) {
+    if (user) {
+      await env.DB.prepare(`
+        UPDATE users SET google_id=?, email_verified=1, role='SUPER_ADMIN'
+        WHERE id=?
+      `).bind(p.sub, user.id).run();
+    } else {
+      await env.DB.prepare(`
+        INSERT INTO users (email,name,phone,role,google_id,email_verified)
+        VALUES (?,?,'','SUPER_ADMIN',?,1)
+      `).bind(email, clean(p.name || email.split("@")[0], 150), p.sub).run();
+    }
+  } else {
+    if (!user || !ROLES.includes(user.role) || user.role === "USER") {
+      return json({ error: "This Google account is not an authorized administrator." }, 403, origin);
+    }
+    await env.DB.prepare(
+      "UPDATE users SET google_id=?,email_verified=1 WHERE id=?"
+    ).bind(p.sub, user.id).run();
+  }
+
+  user = await env.DB.prepare(
+    "SELECT id,email,name,role FROM users WHERE lower(email)=? LIMIT 1"
+  ).bind(email).first();
+
+  const session = token();
+  await env.DB.prepare(`
+    INSERT INTO admin_sessions (token_hash,user_id,expires_at)
+    VALUES (?, ?, datetime('now','+7 days'))
+  `).bind(await hash(session), user.id).run();
+
+  return json({
+    token: session,
+    user: { id: user.id, email: user.email, name: user.name, role: user.role }
+  }, 200, origin);
+}
+
+async function dashboard(env) {
+  const [pending, approved, monthly, lifetime] = await Promise.all([
+    env.DB.prepare(`
+      SELECT COUNT(*) n FROM ads
+      WHERE status NOT IN ('APPROVED','REJECTED')
+    `).first(),
+    env.DB.prepare(`
+      SELECT COUNT(*) n FROM ads
+      WHERE status='APPROVED'
+      AND strftime('%Y-%m',datetime(approved_at,'+330 minutes'))=
+          strftime('%Y-%m',datetime('now','+330 minutes'))
+    `).first(),
+    env.DB.prepare(`
+      SELECT COALESCE(SUM(amount_lkr),0) n FROM payments
+      WHERE status='VERIFIED'
+      AND strftime('%Y-%m',datetime(verified_at,'+330 minutes'))=
+          strftime('%Y-%m',datetime('now','+330 minutes'))
+    `).first(),
+    env.DB.prepare(`
+      SELECT COALESCE(SUM(amount_lkr),0) n FROM payments
+      WHERE status='VERIFIED'
+    `).first()
+  ]);
+
+  return {
+    pending: pending?.n || 0,
+    approved_this_month: approved?.n || 0,
+    monthly_revenue: monthly?.n || 0,
+    lifetime_revenue: lifetime?.n || 0
+  };
+}
+
+async function listAds(env, status) {
+  let sql = `
+    SELECT a.*, c.name AS category_name, d.name AS district_name,
+           ci.name AS city_name, p.name AS package_name
+    FROM ads a
+    LEFT JOIN categories c ON c.id=a.category_id
+    LEFT JOIN districts d ON d.id=a.district_id
+    LEFT JOIN cities ci ON ci.id=a.city_id
+    LEFT JOIN packages p ON p.id=a.package_id
+  `;
+  const params = [];
+
+  if (["PENDING", "APPROVED", "REJECTED"].includes(status)) {
+    sql += status === "PENDING"
+      ? " WHERE a.status NOT IN ('APPROVED','REJECTED')"
+      : " WHERE a.status=?";
+    if (status !== "PENDING") params.push(status);
+  }
+
+  sql += " ORDER BY a.created_at DESC LIMIT 500";
+  const result = await env.DB.prepare(sql).bind(...params).all();
+  return result.results || [];
+}
+
+async function route(req, env, origin) {
+  const url = new URL(req.url);
+  const path = url.pathname.replace(/\/+$/, "") || "/";
+  const method = req.method;
+
+  if (method === "GET" && path === "/api/health") {
+    return json({ ok: true, service: "apebazar-admin-api" }, 200, origin);
+  }
+
+  if (method === "POST" && path === "/api/admin/google-login") {
+    return googleLogin(req, env, origin);
+  }
+
+  if (path.startsWith("/api/admin/")) {
+    const root = "/api/admin";
+
+    if (method === "GET" && path === root + "/dashboard") {
+      await admin(req, env);
+      return json(await dashboard(env), 200, origin);
+    }
+
+    if (method === "GET" && path === root + "/ads") {
+      await admin(req, env, ["SUPER_ADMIN", "AD_MODERATOR", "VIEWER"]);
+      return json({
+        ads: await listAds(env, clean(url.searchParams.get("status") || "ALL").toUpperCase())
+      }, 200, origin);
+    }
+
+    let match = path.match(/^\/api\/admin\/ads\/(\d+)\/moderate$/);
+    if (method === "POST" && match) {
+      const user = await admin(req, env, ["SUPER_ADMIN", "AD_MODERATOR"]);
+      const adId = idOf(match[1]);
+      const b = await body(req);
+      const action = clean(b.action).toUpperCase();
+
+      if (!["APPROVE", "REJECT"].includes(action)) {
+        return json({ error: "Action must be APPROVE or REJECT." }, 400, origin);
+      }
+
+      const ad = await env.DB.prepare(
+        "SELECT id FROM ads WHERE id=?"
+      ).bind(adId).first();
+
+      if (!ad) return json({ error: "Advertisement not found." }, 404, origin);
+
+      const status = action === "APPROVE" ? "APPROVED" : "REJECTED";
+      const reason = action === "REJECT" ? clean(b.reason, 1000) : "";
+
+      await env.DB.prepare(`
+        UPDATE ads SET status=?, approved_at=?,
+        rejection_reason=? WHERE id=?
+      `).bind(
+        status,
+        action === "APPROVE" ? new Date().toISOString() : null,
+        reason || null,
+        adId
+      ).run();
+
+      await env.DB.prepare(`
+        INSERT INTO moderation_log (ad_id,admin_id,action,reason)
+        VALUES (?,?,?,?)
+      `).bind(adId, user.id, action, reason).run();
+
+      return json({ success: true, status }, 200, origin);
+    }
+
+    match = path.match(/^\/api\/admin\/ads\/(\d+)$/);
+    if (method === "PUT" && match) {
+      await admin(req, env, ["SUPER_ADMIN", "AD_MODERATOR"]);
+      const adId = idOf(match[1]);
+      const b = await body(req);
+      const title = clean(b.title, 200);
+      const description = clean(b.description, 10000);
+      const price = Number(b.price_lkr);
+
+      if (!title || !Number.isFinite(price) || price < 0) {
+        return json({ error: "Valid title and price are required." }, 400, origin);
+      }
+
+      const result = await env.DB.prepare(`
+        UPDATE ads SET title=?,description=?,price_lkr=? WHERE id=?
+      `).bind(title, description, price, adId).run();
+
+      if (!result.meta.changes) return json({ error: "Advertisement not found." }, 404, origin);
+      return json({ success: true }, 200, origin);
+    }
+
+    if (method === "GET" && path === root + "/payments") {
+      await admin(req, env, ["SUPER_ADMIN", "AD_MODERATOR", "VIEWER"]);
+      const result = await env.DB.prepare(`
+        SELECT p.*, a.title AS ad_title, u.email AS user_email
+        FROM payments p
+        LEFT JOIN ads a ON a.id=p.ad_id
+        LEFT JOIN users u ON u.id=a.user_id
+        ORDER BY p.created_at DESC LIMIT 500
+      `).all();
+
+      return json({ payments: result.results || [] }, 200, origin);
+    }
+
+    match = path.match(/^\/api\/admin\/payments\/(\d+)\/verify$/);
+    if (method === "POST" && match) {
+      const user = await admin(req, env, ["SUPER_ADMIN", "AD_MODERATOR"]);
+      const paymentId = idOf(match[1]);
+      const b = await body(req);
+      const action = clean(b.action).toUpperCase();
+
+      if (!["VERIFY", "REJECT"].includes(action)) {
+        return json({ error: "Action must be VERIFY or REJECT." }, 400, origin);
+      }
+
+      const result = await env.DB.prepare(`
+        UPDATE payments SET status=?,verified_by=?,verified_at=?,admin_note=?
+        WHERE id=?
+      `).bind(
+        action === "VERIFY" ? "VERIFIED" : "REJECTED",
+        user.id,
+        action === "VERIFY" ? new Date().toISOString() : null,
+        clean(b.note, 1000) || null,
+        paymentId
+      ).run();
+
+      if (!result.meta.changes) return json({ error: "Payment not found." }, 404, origin);
+      return json({ success: true }, 200, origin);
+    }
+
+    if (method === "GET" && path === root + "/packages") {
+      await admin(req, env, ["SUPER_ADMIN", "AD_MODERATOR", "VIEWER"]);
+      const r = await env.DB.prepare("SELECT * FROM packages ORDER BY id").all();
+      return json({ packages: r.results || [] }, 200, origin);
+    }
+
+    match = path.match(/^\/api\/admin\/packages\/(\d+)$/);
+    if (method === "PUT" && match) {
+      await admin(req, env, ["SUPER_ADMIN"]);
+      const b = await body(req);
+      const price = Number(b.price_lkr);
+      const days = Number(b.duration_days);
+
+      if (!Number.isFinite(price) || price < 0 || !Number.isInteger(days) || days < 1) {
+        return json({ error: "Invalid package price or duration." }, 400, origin);
+      }
+
+      const r = await env.DB.prepare(`
+        UPDATE packages SET price_lkr=?,duration_days=?,active=? WHERE id=?
+      `).bind(price, days, b.active ? 1 : 0, idOf(match[1])).run();
+
+      if (!r.meta.changes) return json({ error: "Package not found." }, 404, origin);
+      return json({ success: true }, 200, origin);
+    }
+
+    if (method === "GET" && path === root + "/banks") {
+      await admin(req, env, ["SUPER_ADMIN", "AD_MODERATOR", "VIEWER"]);
+      const r = await env.DB.prepare("SELECT * FROM bank_accounts ORDER BY id").all();
+      return json({ accounts: r.results || [] }, 200, origin);
+    }
+
+    match = path.match(/^\/api\/admin\/banks\/(\d+)$/);
+    if (method === "PUT" && match) {
+      await admin(req, env, ["SUPER_ADMIN"]);
+      const b = await body(req);
+      const r = await env.DB.prepare(`
+        UPDATE bank_accounts SET label=?,bank_name=?,branch=?,
+        account_holder=?,account_number=?,instructions=?,active=?
+        WHERE id=?
+      `).bind(
+        clean(b.label, 100), clean(b.bank_name, 150), clean(b.branch, 150),
+        clean(b.account_holder, 150), clean(b.account_number, 100),
+        clean(b.instructions, 1000), b.active ? 1 : 0, idOf(match[1])
+      ).run();
+
+      if (!r.meta.changes) return json({ error: "Bank account not found." }, 404, origin);
+      return json({ success: true }, 200, origin);
+    }
+
+    if (method === "GET" && path === root + "/categories") {
+      await admin(req, env, ["SUPER_ADMIN", "CATEGORY_ADMIN", "VIEWER"]);
+      const r = await env.DB.prepare(`
+        SELECT c.*, (SELECT COUNT(*) FROM subcategories s
+        WHERE s.category_id=c.id) AS subcategory_count
+        FROM categories c ORDER BY c.name
+      `).all();
+
+      return json({ categories: r.results || [] }, 200, origin);
+    }
+
+    if (method === "POST" && path === root + "/categories") {
+      await admin(req, env, ["SUPER_ADMIN", "CATEGORY_ADMIN"]);
+      const b = await body(req);
+      const name = clean(b.name, 100);
+      const slug = clean(b.slug, 120).toLowerCase();
+
+      if (!name || !/^[a-z0-9-]+$/.test(slug)) {
+        return json({ error: "Enter a category name and valid slug." }, 400, origin);
+      }
+
+      await env.DB.prepare(
+        "INSERT INTO categories (name,slug) VALUES (?,?)"
+      ).bind(name, slug).run();
+
+      return json({ success: true }, 201, origin);
+    }
+
+    if (method === "POST" && path === root + "/subcategories") {
+      await admin(req, env, ["SUPER_ADMIN", "CATEGORY_ADMIN"]);
+      const b = await body(req);
+      const categoryId = idOf(b.category_id);
+      const name = clean(b.name, 100);
+
+      if (!categoryId || !name) return json({ error: "Category and name required." }, 400, origin);
+
+      await env.DB.prepare(
+        "INSERT INTO subcategories (category_id,name) VALUES (?,?)"
+      ).bind(categoryId, name).run();
+
+      return json({ success: true }, 201, origin);
+    }
+
+    if (method === "GET" && path === root + "/locations") {
+      await admin(req, env, ["SUPER_ADMIN", "CATEGORY_ADMIN", "VIEWER"]);
+      const [districts, cities] = await Promise.all([
+        env.DB.prepare("SELECT * FROM districts ORDER BY name").all(),
+        env.DB.prepare("SELECT * FROM cities ORDER BY name").all()
+      ]);
+      return json({
+        districts: districts.results || [],
+        cities: cities.results || []
+      }, 200, origin);
+    }
+
+    if (method === "POST" && path === root + "/districts") {
+      await admin(req, env, ["SUPER_ADMIN", "CATEGORY_ADMIN"]);
+      const b = await body(req);
+      const name = clean(b.name, 100);
+      if (!name) return json({ error: "District name required." }, 400, origin);
+
+      await env.DB.prepare("INSERT INTO districts (name) VALUES (?)").bind(name).run();
+      return json({ success: true }, 201, origin);
+    }
+
+    if (method === "POST" && path === root + "/cities") {
+      await admin(req, env, ["SUPER_ADMIN", "CATEGORY_ADMIN"]);
+      const b = await body(req);
+      const districtId = idOf(b.district_id);
+      const name = clean(b.name, 100);
+
+      if (!districtId || !name) return json({ error: "District and city name required." }, 400, origin);
+
+      await env.DB.prepare(
+        "INSERT INTO cities (district_id,name) VALUES (?,?)"
+      ).bind(districtId, name).run();
+
+      return json({ success: true }, 201, origin);
+    }
+
+    if (method === "GET" && path === root + "/admins") {
+      await admin(req, env, ["SUPER_ADMIN"]);
+      const r = await env.DB.prepare(`
+        SELECT email,role FROM users
+        WHERE role IN ('SUPER_ADMIN','AD_MODERATOR','CATEGORY_ADMIN','VIEWER')
+        ORDER BY email
+      `).all();
+      return json({ admins: r.results || [] }, 200, origin);
+    }
+
+    if (method === "POST" && path === root + "/admins") {
+      await admin(req, env, ["SUPER_ADMIN"]);
+      const b = await body(req);
+      const email = clean(b.email, 254).toLowerCase();
+      const role = clean(b.role).toUpperCase();
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+          !["AD_MODERATOR", "CATEGORY_ADMIN", "VIEWER"].includes(role)) {
+        return json({ error: "Enter a valid email and permitted role." }, 400, origin);
+      }
+
+      const existing = await env.DB.prepare(
+        "SELECT id FROM users WHERE lower(email)=? LIMIT 1"
+      ).bind(email).first();
+
+      if (existing) {
+        await env.DB.prepare("UPDATE users SET role=? WHERE id=?")
+          .bind(role, existing.id).run();
+      } else {
+        await env.DB.prepare(
+          "INSERT INTO users (email,name,phone,role) VALUES (?,'','',?)"
+        ).bind(email, role).run();
+      }
+
+      return json({ success: true }, 201, origin);
+    }
+
+    return json({ error: "Admin endpoint not found." }, 404, origin);
+  }
+
+  return json({ error: "Endpoint not found." }, 404, origin);
+}
+
+export default {
+  async fetch(request, env) {
+    const requestOrigin = request.headers.get("Origin") || "";
+    const origins = allowedOrigins(env);
+
+    if (request.method === "OPTIONS") {
+      if (requestOrigin && !origins.includes(requestOrigin)) {
+        return new Response(null, { status: 403 });
+      }
+      return new Response(null, {
+        status: 204,
+        headers: {
+          ...corsHeaders(requestOrigin || "https://apebazar.lk"),
+          "Access-Control-Max-Age": "86400"
+        }
+      });
+    }
+
+    if (requestOrigin && !origins.includes(requestOrigin)) {
+      return new Response("Origin not allowed.", { status: 403 });
+    }
+
+    const origin = requestOrigin || "https://apebazar.lk";
+
+    try {
+      return await route(request, env, origin);
+    } catch (e) {
+      if (e.message === "UNAUTHORIZED") {
+        return json({ error: "Please sign in as an authorized administrator." }, 401, origin);
+      }
+      if (e.message === "FORBIDDEN") {
+        return json({ error: "You do not have permission to perform this action." }, 403, origin);
+      }
+      console.error("ApeBazar admin API error:", e);
+      return json({ error: "Server error. Check the Worker logs and database schema." }, 500, origin);
+    }
+  }
+};
+
+function corsHeaders(origin) {
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET,POST,PUT,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type,Authorization",
+    "Vary": "Origin"
+  };
+}
