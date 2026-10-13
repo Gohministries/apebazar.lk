@@ -1,0 +1,129 @@
+
+const cors = {
+  "Access-Control-Allow-Origin": "https://apebazar.lk",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+};
+
+const json = (data, status = 200) => Response.json(data, {status, headers:cors});
+const uid = () => crypto.randomUUID();
+
+async function user(req, env) {
+  const token = (req.headers.get("Authorization") || "").replace("Bearer ", "");
+  if (!token) return null;
+  try {
+    const [body, sig] = token.split(".");
+    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(env.SESSION_SECRET), {name:"HMAC",hash:"SHA-256"}, false, ["verify"]);
+    const ok = await crypto.subtle.verify("HMAC", key, Uint8Array.from(atob(sig), c => c.charCodeAt(0)), new TextEncoder().encode(body));
+    const p = JSON.parse(atob(body));
+    return ok && p.exp > Date.now() ? p : null;
+  } catch { return null; }
+}
+
+async function token(payload, secret) {
+  const body = btoa(JSON.stringify(payload)).replace(/=/g,"");
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), {name:"HMAC",hash:"SHA-256"}, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
+  return body + "." + btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=/g,"");
+}
+
+export default {
+ async fetch(req, env) {
+  if (req.method === "OPTIONS") return new Response(null,{headers:cors});
+  const url = new URL(req.url), path = url.pathname;
+  try {
+   if (path === "/api/health") return json({ok:true});
+
+   if (path === "/api/auth/google" && req.method === "POST") {
+    const {credential} = await req.json();
+    const r = await fetch("https://oauth2.googleapis.com/tokeninfo?id_token="+encodeURIComponent(credential));
+    const g = await r.json();
+    if (!r.ok || g.aud !== env.GOOGLE_CLIENT_ID || g.email_verified !== "true")
+      return json({error:"Invalid Google login"},401);
+
+    await env.DB.prepare("INSERT OR IGNORE INTO users(email,name,google_id,email_verified) VALUES(?,?,?,1)")
+      .bind(g.email,g.name || g.email,g.sub).run();
+    await env.DB.prepare("UPDATE users SET google_id=?,email_verified=1 WHERE email=?")
+      .bind(g.sub,g.email).run();
+    const u = await env.DB.prepare("SELECT id,email,name,role FROM users WHERE email=?").bind(g.email).first();
+    return json({token:await token({id:u.id,email:u.email,role:u.role,exp:Date.now()+604800000},env.SESSION_SECRET),user:u});
+   }
+
+   if (path === "/api/auth/me") {
+    const u = await user(req,env);
+    return u ? json({user:u}) : json({error:"Login required"},401);
+   }
+
+   if (path === "/api/categories")
+    return json((await env.DB.prepare("SELECT id,name,slug FROM categories ORDER BY name").all()).results);
+
+   if (path === "/api/locations")
+    return json((await env.DB.prepare("SELECT id,name FROM districts ORDER BY name").all()).results);
+
+   if (path === "/api/listings") {
+    const q = url.searchParams, search = "%"+(q.get("search")||"")+"%";
+    const rows = await env.DB.prepare(`
+     SELECT a.id,a.title,a.description,a.price_lkr,a.condition,a.created_at,
+     c.name category,d.name district,ci.name city
+     FROM ads a LEFT JOIN categories c ON c.id=a.category_id
+     LEFT JOIN districts d ON d.id=a.district_id
+     LEFT JOIN cities ci ON ci.id=a.city_id
+     WHERE a.status='APPROVED' AND (a.title LIKE ? OR a.description LIKE ?)
+     AND (?='' OR c.slug=? OR c.id=?) AND (?='' OR d.name=? OR d.id=?)
+     ORDER BY a.created_at DESC LIMIT 100`)
+     .bind(search,search,q.get("category")||"",q.get("category")||"",q.get("category")||"0",
+       q.get("location")||"",q.get("location")||"",q.get("location")||"0").all();
+    return json(rows.results);
+   }
+
+   if (path === "/api/upload" && req.method === "POST") {
+    const u = await user(req,env);
+    if (!u) return json({error:"Login required"},401);
+    const f = (await req.formData()).get("file");
+    if (!f || !/^image\/(jpeg|png|webp|gif)$/.test(f.type) || f.size>5*1024*1024)
+      return json({error:"Use JPG, PNG, WEBP or GIF under 5 MB"},400);
+    const ext = f.type.split("/")[1].replace("jpeg","jpg");
+    const key = `ads/${u.id}/${uid()}.${ext}`;
+    await env.MEDIA.put(key,f.stream(),{httpMetadata:{contentType:f.type}});
+    return json({key,url:`${url.origin}/api/media/${key}`});
+   }
+
+   if (path.startsWith("/api/media/")) {
+    const obj = await env.MEDIA.get(decodeURIComponent(path.slice(11)));
+    if (!obj) return new Response("Not found",{status:404});
+    return new Response(obj.body,{headers:{...cors,"Content-Type":obj.httpMetadata?.contentType||"image/jpeg","Cache-Control":"public, max-age=86400"}});
+   }
+
+   if (path === "/api/ads" && req.method === "POST") {
+    const u = await user(req,env);
+    if (!u) return json({error:"Login required"},401);
+    const a = await req.json();
+    if (!a.title || a.title.length<3 || !a.description || !a.category_id || !a.district_id)
+      return json({error:"Complete all required fields"},400);
+
+    const pkg = await env.DB.prepare("SELECT * FROM packages WHERE id=? AND active=1").bind(a.package_id||1).first();
+    if (!pkg) return json({error:"Invalid package"},400);
+    if (pkg.price_lkr>0) return json({error:"Payment verification is required for paid packages"},400);
+
+    const used = await env.DB.prepare("SELECT id FROM free_ad_claims WHERE user_id=? AND created_at>=datetime('now','-30 days')").bind(u.id).first();
+    if (used) return json({error:"Your free ad is already used. Try again after 30 days."},400);
+
+    const r = await env.DB.prepare(`
+     INSERT INTO ads(user_id,category_id,district_id,city_id,package_id,title,description,price_lkr,condition,seller_name,seller_phone,status)
+     VALUES(?,?,?,?,?,?,?,?,?,?,?,'PENDING')`)
+     .bind(u.id,a.category_id,a.district_id,a.city_id||null,pkg.id,a.title,a.description,
+       Math.max(0,Number(a.price_lkr)||0),a.condition||"Used",a.seller_name||u.email,a.seller_phone||"").run();
+
+    await env.DB.prepare("INSERT INTO free_ad_claims(user_id,ad_id) VALUES(?,?)").bind(u.id,r.meta.last_row_id).run();
+    for (const key of (a.photos||[]).slice(0,8))
+      if (key.startsWith(`ads/${u.id}/`))
+       await env.DB.prepare("INSERT INTO ad_photos(ad_id,photo_url,r2_key) VALUES(?,?,?)")
+        .bind(r.meta.last_row_id,`${url.origin}/api/media/${key}`,key).run();
+
+    return json({success:true,message:"Ad submitted for approval",id:r.meta.last_row_id});
+   }
+
+   return json({error:"Not found"},404);
+  } catch(e) { return json({error:"Server error",details:e.message},500); }
+ }
+};
