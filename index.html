@@ -1,239 +1,459 @@
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ApeBazar.lk | Buy & Sell</title>
+<title>ApeBazar.lk</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-:root{--n:#102a56;--g:#f4bd35;--bg:#f4f6fa}
+:root{--bg:#0b1628;--panel:#13233b;--gold:#c5a64b;--text:#f4f7fc;--muted:#aab8cc}
 *{box-sizing:border-box}
-body{margin:0;font:15px Arial;background:var(--bg);color:#172337}
-header,section,footer{padding:16px}
-header{background:white;position:sticky;top:0;z-index:3;box-shadow:0 2px 8px #ddd}
-nav,main{max-width:1100px;margin:auto}
-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.logo{font-size:23px;font-weight:bold;color:var(--n)}
-.logo span{color:#d99b09}
-a{color:inherit;text-decoration:none}
-button{cursor:pointer;border:0;border-radius:7px;padding:11px 14px;font-weight:bold}
-.gold{background:var(--g);color:var(--n)}
-.blue{background:var(--n);color:white}
-input,select,textarea{width:100%;padding:11px;border:1px solid #ddd;border-radius:7px;background:white}
-.hero{background:linear-gradient(120deg,var(--n),#24518b);color:white;text-align:center;padding:35px 15px}
-.search,.filters{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;max-width:1000px;margin:20px auto 0}
-main{padding:16px}
-.panel{background:white;border-radius:10px;padding:18px;margin-bottom:16px}
-h2{font-size:20px;color:var(--n);margin-top:0}
-.categories,.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-.categories{grid-template-columns:repeat(6,minmax(0,1fr))}
-.cat,.card{background:white;border:1px solid #e1e6ef;border-radius:8px;overflow:hidden}
-.cat{padding:13px 5px}
-.cat.active{background:#fff6da;border-color:var(--g)}
-.card{cursor:pointer}
-.card img{width:100%;height:140px;object-fit:cover;background:#eee}
-.info{padding:11px}
-.price{font-size:18px;font-weight:bold;margin:8px 0}
-.meta{font-size:12px;color:#6b7789}
-.ad{padding:12px;margin:12px 0;background:#fafbfe;border:1px solid #e1e6ef;border-radius:8px;text-align:center;overflow:hidden}
-.ad small{display:block;color:#777;margin-bottom:8px}
-.ad a{display:inline-block;margin:8px;background:#edf2fb;padding:9px;border-radius:6px}
-footer{background:#0b1e3e;color:white;text-align:center}
-.modal{display:none;position:fixed;inset:0;background:#0009;z-index:5;align-items:center;justify-content:center;padding:15px}
-.modal.open{display:flex}
-.box{background:white;padding:20px;border-radius:10px;width:min(550px,100%);max-height:90vh;overflow:auto}
-.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.formgrid .full{grid-column:1/-1}
-@media(max-width:700px){
- .search,.filters{grid-template-columns:1fr 1fr}
- .categories{grid-template-columns:repeat(3,1fr)}
- .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
- .card img{height:110px}
+body{margin:0;background:var(--bg);color:var(--text);font:14px Arial}
+header{position:sticky;top:0;background:#0a1527;border-bottom:1px solid #283c57;z-index:5}
+nav{max-width:950px;margin:auto;min-height:62px;padding:8px 14px;display:flex;align-items:center;gap:10px}
+.brand{display:flex;align-items:center;gap:8px;margin-right:auto;color:white;text-decoration:none;font-size:17px;font-weight:bold;white-space:nowrap}
+.brand img{width:36px;height:36px;object-fit:cover;border-radius:7px}
+.gold{color:#d9b85c}
+button{border:0;border-radius:8px;padding:10px 14px;background:var(--gold);color:#101b2c;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.5}
+.secondary{background:#172a45;color:white;border:1px solid #283c57}
+.menu-wrap{position:relative}
+.menu{display:none;position:absolute;right:0;top:43px;background:var(--panel);padding:12px;border-radius:8px;min-width:170px;box-shadow:0 8px 20px #0005}
+.menu.show{display:grid;gap:12px}
+.menu a{color:white;text-decoration:none}
+main{max-width:950px;margin:auto;padding:15px}
+.hero,.panel{background:var(--panel);border:1px solid #283c57;border-radius:12px;padding:15px;margin-bottom:15px}
+.hero{text-align:center}
+.hero h1{margin:0 0 8px;font-size:28px}
+p,.muted,.status{color:var(--muted)}
+input,select,textarea{width:100%;padding:11px;background:#0c192c;color:white;border:1px solid #283c57;border-radius:8px}
+input[type=checkbox]{width:auto}
+label{display:block;color:var(--muted);margin:10px 0 5px}
+.filters,.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:15px}
+.ad{background:var(--panel);border:1px solid #283c57;border-radius:10px;overflow:hidden;min-width:0}
+.ad img{width:100%;height:150px;object-fit:cover}
+.ad div{padding:10px;overflow-wrap:anywhere}
+.price{color:#d9b85c;font-weight:bold}
+footer{text-align:center;padding:20px;color:var(--muted)}
+footer a{color:#d9b85c}
+[hidden]{display:none!important}
+@media(max-width:600px){
+nav{gap:7px;padding:8px 10px}.brand{font-size:15px;gap:6px}
+.brand img{width:32px;height:32px}nav button{padding:9px 10px}
+.grid{grid-template-columns:1fr 1fr}.filters,.formgrid{grid-template-columns:1fr}
+.ad img{height:120px}.hero h1{font-size:24px}
 }
-@media(max-width:420px){.formgrid{grid-template-columns:1fr}.formgrid .full{grid-column:auto}}
 </style>
 </head>
 <body>
-<header><nav>
-<a class="logo" href="#">Ape<span>Bazar</span>.lk</a>
-<a href="#categories">Categories</a><a href="#listings">Browse Ads</a>
-<button class="gold" onclick="openPost()">＋ Post Ad</button>
-</nav></header>
-
-<section class="hero">
-<h1>Find it. Buy it. Sell it.</h1>
-<p>Discover products and services across Sri Lanka.</p>
-<form class="search" id="searchForm">
-<input id="keyword" placeholder="What are you looking for?">
-<select id="searchCategory"><option value="">All categories</option></select>
-<select id="searchLocation"><option value="">All districts</option></select>
-<button class="gold">Search</button>
-</form>
-</section>
+<header>
+<nav>
+<a class="brand" href="/">
+<img src="https://assets.createlk.com/apebazar/IMG-20261011-WA0001.jpg" alt="ApeBazar logo">
+<span>ApeBazar<span class="gold">.lk</span></span>
+</a>
+<button id="loginBtn" type="button">Sign in</button>
+<img id="avatar" width="35" height="35" style="border-radius:50%;object-fit:cover" hidden alt="Profile">
+<div class="menu-wrap">
+<button class="secondary" type="button" id="menuBtn">☰</button>
+<div class="menu" id="menu">
+<a href="#browse">Browse Ads</a>
+<a href="#post" id="menuPost">Post an Ad</a>
+<a href="#recent">Recent Posts</a>
+<a href="/Ape/terms.html">Terms & Conditions</a>
+<a href="#" id="logout" hidden>Sign out</a>
+</div>
+</div>
+</nav>
+</header>
 
 <main>
-<section class="panel" id="categories">
-<h2>Browse Categories</h2>
-<div class="categories" id="categoryGrid"></div>
+<section class="hero">
+<h1>Buy & Sell in <span class="gold">Sri Lanka</span></h1>
+<p>Discover local deals. Post your ads for free.</p>
+<button type="button" id="heroPost">＋ Post a free ad</button>
 </section>
 
-<section class="panel" id="listings">
-<h2>Latest Listings</h2>
-
-<!-- Ad 1 -->
-<div class="ad"><small>ADVERTISEMENT</small>
-<script src="https://pl31875157.profitableratecpmnetwork.com/db/5e/bc/db5ebca1a2e0d06bb2586a787b3f992a.js"></script>
-</div>
-
-<!-- Ad 2 and direct link -->
-<div class="ad"><small>ADVERTISEMENT</small>
-<script src="https://pl31875154.profitableratecpmnetwork.com/57/0f/f7/570ff7a0bf261cf1e6874ff759b2110c.js"></script>
-<a href="https://www.profitableratecpmnetwork.com/j6he69wq?key=6d0393725079dc60c3aebea37d365bf8" target="_blank" rel="sponsored nofollow noopener">Sponsored offer ↗</a>
-</div>
-
+<section class="panel" id="browse">
+<h3>Browse Ads</h3>
 <div class="filters">
-<select id="filterCategory"><option value="">All categories</option></select>
-<select id="filterLocation"><option value="">All districts</option></select>
-<input id="minPrice" type="number" min="0" placeholder="Min LKR">
-<input id="maxPrice" type="number" min="0" placeholder="Max LKR">
+<div><label for="category">Category</label><select id="category"><option value="">Select category</option></select></div>
+<div><label for="district">District</label><select id="district"><option value="">Select district</option></select></div>
+<div><label for="q">Search</label><input id="q" placeholder="Search ads"></div>
+<button id="searchBtn" type="button">Search</button>
 </div>
-<p id="count">Listings</p>
-<div class="cards" id="listingGrid"></div>
-
-<!-- Ad 3: container placement -->
-<div class="ad"><small>ADVERTISEMENT</small>
-<div id="container-30f905d14a580630063653aabeccc89e"></div>
-</div>
+<div id="browseStatus" class="status"></div>
 </section>
 
-<section class="panel">
-<h2>How ApeBazar Works</h2>
-<p>🔍 Search listings · 📞 Contact sellers · 📣 Post your ad</p>
-<button class="blue" onclick="openPost()">＋ Post Ad</button>
+<div id="results" class="grid"></div>
+<div style="text-align:center;margin-bottom:20px">
+<button id="more" class="secondary" hidden>Load more</button>
+</div>
+
+<section class="panel" id="post">
+<h3>Post a Free Ad</h3>
+<div id="signinNote">Please sign in with Google before posting an ad.</div>
+<form id="adForm" hidden>
+<div class="formgrid">
+<div><label>Title *</label><input name="title" required maxlength="120"></div>
+<div><label>Price (LKR)</label><input name="price_lkr" type="number" min="0"></div>
+<div><label>Category *</label><select name="category_id" id="postCategory" required></select></div>
+<div><label>District *</label><select name="district_id" id="postDistrict" required></select></div>
+<div><label>Condition</label><select name="condition"><option value="Used">Used</option><option value="New">New</option><option value="Refurbished">Refurbished</option></select></div>
+<div><label>Seller name *</label><input name="seller_name" required></div>
+<div><label>Phone *</label><input name="seller_phone" required></div>
+<div><label>Photos (maximum 5)</label><input id="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple></div>
+</div>
+<label>Description *</label>
+<textarea name="description" required maxlength="5000"></textarea>
+<label><input type="checkbox" name="agree" required> I agree to <a href="/Ape/terms.html">Terms & Conditions</a></label>
+<button id="submit" type="submit">Submit for approval</button>
+</form>
+<div id="postStatus" class="status"></div>
+</section>
+
+<section id="recent">
+<h3>Recent Posts</h3>
+<div id="recentStatus" class="status">Loading ads...</div>
+<div id="recentResults" class="grid"></div>
+<div style="text-align:center;margin:15px">
+<button id="moreRecent" class="secondary" hidden>Load more</button>
+</div>
 </section>
 </main>
 
-<footer>© <span id="year"></span> ApeBazar.lk · Buy and sell across Sri Lanka</footer>
-
-<div class="modal" id="postModal">
-<div class="box">
-<h2>Prepare an Ad</h2>
-<form id="postForm" class="formgrid">
-<input class="full" id="title" placeholder="Ad title" required maxlength="100">
-<select id="adCategory" required><option value="">Category</option></select>
-<select id="adLocation" required><option value="">District</option></select>
-<input id="price" type="number" min="0" placeholder="Price in LKR" required>
-<input id="seller" placeholder="Seller name">
-<input id="phone" placeholder="Phone number" inputmode="tel">
-<textarea class="full" id="description" placeholder="Description" required maxlength="2000"></textarea>
-<div class="full"><button class="blue">Check Form</button>
-<button type="button" onclick="closePost()">Cancel</button></div>
-</form>
-<p id="formMessage"></p>
-</div>
-</div>
-
-<!-- Ad 4: load the container script only once -->
-<script async data-cfasync="false" src="https://pl31875155.profitableratecpmnetwork.com/30f905d14a580630063653aabeccc89e/invoke.js"></script>
+<footer>© <span id="year"></span> ApeBazar.lk</footer>
 
 <script>
-const API_BASE=""; // Add your Cloudflare Workers URL
+const API="https://apebazar-public-api.createlk.workers.dev";
+const GOOGLE_CLIENT_ID="582157960266-mvlpmqne90d9q7ja5vuhi3g1aspvtp86.apps.googleusercontent.com";
 const $=id=>document.getElementById(id);
-let categories=[],locations=[],listings=[];
 
-async function api(path){
- if(!API_BASE)throw Error("API URL missing");
- const r=await fetch(API_BASE.replace(/\/$/,"")+path);
- if(!r.ok)throw Error("API error");
- return r.json();
-}
-function arr(d,keys){
- if(Array.isArray(d))return d;
- for(const k of keys)if(Array.isArray(d?.[k]))return d[k];
- return [];
-}
-function name(x){return typeof x==="string"?x:x.name||x.title||x.label||""}
-function val(x){return typeof x==="string"?x:String(x.id??x.slug??x.name??"")}
-function fill(id,items,placeholder){
- const e=$(id);e.replaceChildren(new Option(placeholder,""));
- items.forEach(x=>{if(name(x)&&val(x))e.add(new Option(name(x),val(x)))});
-}
-function renderCategories(){
- $("categoryGrid").replaceChildren();
- categories.forEach(x=>{
-  const b=document.createElement("button");
-  b.className="cat";b.textContent=(x.emoji||x.icon||"📦")+" "+name(x);
-  b.onclick=()=>{$("filterCategory").value=val(x);$("searchCategory").value=val(x);loadListings()};
-  $("categoryGrid").append(b);
- });
-}
-function money(n){return Number.isFinite(Number(n))?"LKR "+Number(n).toLocaleString("en-LK"):"Price unavailable"}
-function renderListings(items){
- listings=items;
- const grid=$("listingGrid");grid.replaceChildren();
- $("count").textContent=items.length+" listings";
- items.forEach(x=>{
-  const c=document.createElement("article");c.className="card";
-  if(x.image_url||x.image){
-   const im=document.createElement("img");im.src=x.image_url||x.image;im.alt=name(x);
-   im.onerror=()=>im.remove();c.append(im);
-  }
-  const i=document.createElement("div");i.className="info";
-  const t=document.createElement("b");t.textContent=x.title||x.name||"";
-  const p=document.createElement("div");p.className="price";p.textContent=money(x.price);
-  const m=document.createElement("div");m.className="meta";m.textContent=x.location||x.district||"Sri Lanka";
-  i.append(t,p,m);c.append(i);
-  c.onclick=()=>alert((x.description||"No description")+"\n"+money(x.price)+"\n"+(x.phone||"No phone provided"));
-  grid.append(c);
- });
- if(!items.length)grid.textContent="No listings found.";
-}
-async function loadCategories(){
- try{
-  categories=arr(await api("/api/categories"),["categories","results","data"]);
-  ["searchCategory","filterCategory","adCategory"].forEach(id=>fill(id,categories,"All categories"));
-  renderCategories();
- }catch(e){$("categoryGrid").textContent="Connect the API to load categories."}
-}
-async function loadLocations(){
- try{
-  locations=arr(await api("/api/locations"),["locations","districts","results","data"]);
-  ["searchLocation","filterLocation","adLocation"].forEach(id=>fill(id,locations,"All districts"));
- }catch(e){}
-}
-async function loadListings(){
- const q=new URLSearchParams({
-  search:$("keyword").value.trim(),
-  category:$("filterCategory").value||$("searchCategory").value,
-  location:$("filterLocation").value||$("searchLocation").value,
-  minPrice:$("minPrice").value,maxPrice:$("maxPrice").value
- });
- try{
-  const d=await api("/api/listings?"+q);
-  renderListings(arr(d,["listings","results","data"]));
- }catch(e){renderListings([]);$("listingGrid").textContent="Connect your Cloudflare API to load listings."}
-}
-$("searchForm").onsubmit=e=>{
- e.preventDefault();
- $("filterCategory").value=$("searchCategory").value;
- $("filterLocation").value=$("searchLocation").value;
- loadListings();
-};
-["filterCategory","filterLocation","minPrice","maxPrice"].forEach(id=>$(id).onchange=loadListings);
-$("keyword").oninput=()=>{
- clearTimeout(window.searchTimer);
- window.searchTimer=setTimeout(loadListings,350);
-};
-function openPost(){$("postModal").classList.add("open")}
-function closePost(){$("postModal").classList.remove("open")}
-$("postForm").onsubmit=e=>{
- e.preventDefault();
- $("formMessage").textContent="Form valid. Connect your Cloudflare posting API to publish this ad.";
-};
-$("postModal").onclick=e=>{if(e.target===$("postModal"))closePost()};
+let token=sessionStorage.getItem("apebazar_token")||"";
+let user={},offset=0,roffset=0,googleReady=false;
+
 $("year").textContent=new Date().getFullYear();
-loadCategories();loadLocations();loadListings();
+
+async function api(path,options={}){
+  const headers=new Headers(options.headers||{});
+  if(token)headers.set("Authorization","Bearer "+token);
+  if(options.body&&!(options.body instanceof FormData)){
+    headers.set("Content-Type","application/json");
+    options.body=JSON.stringify(options.body);
+  }
+  const response=await fetch(API+path,{...options,headers});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw Error(data.error||data.message||"Request failed ("+response.status+")");
+  return data;
+}
+
+function msg(id,text){$(id).textContent=text}
+
+function authUI(){
+  $("loginBtn").hidden=!!token;
+  $("avatar").hidden=!token||!user.picture;
+  $("logout").hidden=!token;
+  $("signinNote").hidden=!!token;
+  $("adForm").hidden=!token;
+  if(user.picture)$("avatar").src=user.picture;
+}
+
+function initGoogle(){
+  if(!window.google?.accounts?.id){setTimeout(initGoogle,300);return}
+  google.accounts.id.initialize({
+    client_id:GOOGLE_CLIENT_ID,
+    callback:googleCallback
+  });
+  googleReady=true;
+}
+
+function login(){
+  if(!googleReady){
+    msg("postStatus","Google login is loading. Please try again.");
+    initGoogle();
+    return;
+  }
+  google.accounts.id.prompt(notification=>{
+    if(notification.isNotDisplayed()||notification.isSkippedMoment()){
+      msg("postStatus","Google sign-in was blocked or unavailable. Try again or check Google OAuth settings.");
+    }
+  });
+}
+
+async function googleCallback(response){
+  try{
+    msg("postStatus","Signing in...");
+    const data=await api("/api/auth/google",{
+      method:"POST",
+      body:{id_token:response.credential}
+    });
+    if(!data.token)throw Error("Worker did not return a login token.");
+
+    token=data.token;
+    sessionStorage.setItem("apebazar_token",token);
+
+    const payload=JSON.parse(atob(
+      response.credential.split(".")[1].replace(/-/g,"+").replace(/_/g,"/")
+    ));
+    user={name:payload.name||"",picture:payload.picture||""};
+
+    authUI();
+    if($("adForm").elements.seller_name)
+      $("adForm").elements.seller_name.value=user.name;
+
+    msg("postStatus","Signed in successfully. You can post your ad.");
+    $("post").scrollIntoView({behavior:"smooth"});
+  }catch(error){
+    msg("postStatus","Login failed: "+error.message);
+  }
+}
+
+function signout(event){
+  event.preventDefault();
+  token="";user={};
+  sessionStorage.removeItem("apebazar_token");
+  authUI();
+  msg("postStatus","Signed out.");
+}
+
+function postFreeAd(){
+  if(!token){
+    msg("postStatus","Please sign in with Google before posting an ad.");
+    login();
+    return;
+  }
+  $("post").scrollIntoView({behavior:"smooth"});
+  $("adForm").hidden=false;
+}
+
+$("loginBtn").addEventListener("click",login);
+$("logout").addEventListener("click",signout);
+$("heroPost").addEventListener("click",postFreeAd);
+$("menuPost").addEventListener("click",event=>{
+  event.preventDefault();
+  $("menu").classList.remove("show");
+  postFreeAd();
+});
+$("menuBtn").addEventListener("click",()=>$("menu").classList.toggle("show"));
+document.addEventListener("click",event=>{
+  if(!event.target.closest(".menu-wrap"))$("menu").classList.remove("show");
+});
+
+function fill(id,items,label){
+  const select=$(id);
+  select.replaceChildren(new Option(label,""));
+  if(!Array.isArray(items))return;
+  items.forEach(item=>{
+    if(item.id!=null&&item.name!=null)
+      select.add(new Option(item.name,item.id));
+  });
+}
+
+async function loadOptions(){
+  try{
+    const [categoryData,locationData]=await Promise.all([
+      api("/api/categories"),
+      api("/api/locations")
+    ]);
+
+    const categories=categoryData.categories||categoryData.data||categoryData;
+    const locations=locationData.districts||locationData.locations||locationData.data||locationData;
+
+    ["category","postCategory"].forEach(id=>fill(id,categories,"Select category"));
+    ["district","postDistrict"].forEach(id=>fill(id,locations,"Select district"));
+  }catch(error){
+    msg("browseStatus","Could not load categories/districts: "+error.message);
+  }
+}
+
+function listingArray(data){
+  if(Array.isArray(data))return data;
+  for(const key of ["listings","ads","results","data","items"]){
+    if(Array.isArray(data[key]))return data[key];
+  }
+  return [];
+}
+
+function makeCard(ad){
+  const card=document.createElement("article");
+  card.className="ad";
+
+  let photos=ad.photos||[];
+  if(typeof photos==="string"){
+    try{photos=JSON.parse(photos)}catch{photos=[]}
+  }
+
+  let imageURL=ad.image_url||ad.photo_url||"";
+  if(!imageURL&&Array.isArray(photos)&&photos.length){
+    const photo=photos[0];
+    imageURL=typeof photo==="string"?photo:(photo?.url||photo?.public_url||"");
+  }
+
+  if(imageURL){
+    const img=document.createElement("img");
+    img.src=imageURL;
+    img.alt=ad.title||"Advertisement";
+    img.loading="lazy";
+    img.onerror=()=>img.remove();
+    card.append(img);
+  }
+
+  const content=document.createElement("div");
+  const title=document.createElement("b");
+  title.textContent=ad.title||"Untitled ad";
+  content.append(title);
+
+  const price=document.createElement("p");
+  price.className="price";
+  price.textContent=ad.price_lkr==null||ad.price_lkr===""
+    ?"Price not specified"
+    :Number(ad.price_lkr)===0
+      ?"Free / Negotiable"
+      :"LKR "+Number(ad.price_lkr).toLocaleString();
+  content.append(price);
+
+  const description=document.createElement("p");
+  description.textContent=(ad.description||"").slice(0,140);
+  content.append(description);
+
+  const details=document.createElement("small");
+  details.textContent=[
+    ad.district_name||ad.district||"",
+    ad.category_name||ad.category||""
+  ].filter(Boolean).join(" · ");
+  content.append(details);
+
+  if(ad.seller_phone){
+    const p=document.createElement("p");
+    const link=document.createElement("a");
+    link.href="tel:"+ad.seller_phone;
+    link.textContent="Contact seller";
+    link.style.color="#d9b85c";
+    p.append(link);
+    content.append(p);
+  }
+
+  card.append(content);
+  return card;
+}
+
+async function searchAds(loadMore=false){
+  if(!$("category").value||!$("district").value){
+    msg("browseStatus","Select both category and district to search.");
+    return;
+  }
+
+  if(!loadMore){
+    offset=0;
+    $("results").replaceChildren();
+  }
+
+  try{
+    const params=new URLSearchParams({
+      category_id:$("category").value,
+      district_id:$("district").value,
+      q:$("q").value.trim(),
+      limit:"12",
+      offset:String(offset)
+    });
+
+    const data=await api("/api/listings?"+params.toString());
+    const ads=listingArray(data);
+    ads.forEach(ad=>$("results").append(makeCard(ad)));
+    offset+=ads.length;
+    $("more").hidden=ads.length<12;
+    msg("browseStatus",ads.length?ads.length+" ads loaded.":"No approved ads found.");
+  }catch(error){
+    msg("browseStatus","Could not load ads: "+error.message);
+  }
+}
+
+$("searchBtn").addEventListener("click",()=>searchAds());
+$("more").addEventListener("click",()=>searchAds(true));
+$("q").addEventListener("keydown",event=>{
+  if(event.key==="Enter"){event.preventDefault();searchAds()}
+});
+
+async function recent(loadMore=false){
+  if(!loadMore){
+    roffset=0;
+    $("recentResults").replaceChildren();
+  }
+
+  try{
+    const data=await api("/api/listings?limit=6&offset="+roffset);
+    const ads=listingArray(data);
+    ads.forEach(ad=>$("recentResults").append(makeCard(ad)));
+    roffset+=ads.length;
+    $("moreRecent").hidden=ads.length<6;
+    msg("recentStatus",ads.length?"Recent ads loaded.":"No approved ads available yet.");
+  }catch(error){
+    msg("recentStatus","Could not load recent ads: "+error.message);
+  }
+}
+
+$("moreRecent").addEventListener("click",()=>recent(true));
+
+$("adForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+
+  if(!token){
+    msg("postStatus","Please sign in before posting.");
+    login();
+    return;
+  }
+
+  const form=event.target;
+  const button=$("submit");
+  button.disabled=true;
+
+  try{
+    const files=[...$("photos").files];
+    if(files.length>5)throw Error("Maximum 5 photos allowed.");
+
+    const photos=[];
+    for(const file of files){
+      if(file.size>5*1024*1024)throw Error("Each photo must be under 5 MB.");
+      if(!["image/jpeg","image/png","image/webp"].includes(file.type))
+        throw Error("Use JPG, PNG, or WebP photos.");
+
+      const uploadForm=new FormData();
+      uploadForm.append("file",file);
+      const uploaded=await api("/api/upload",{
+        method:"POST",
+        body:uploadForm
+      });
+
+      if(!uploaded.key)throw Error("Photo upload did not return a key.");
+      photos.push(uploaded.key);
+    }
+
+    const data=Object.fromEntries(new FormData(form).entries());
+    data.price_lkr=data.price_lkr===""?null:Number(data.price_lkr);
+    data.photos=photos;
+    delete data.agree;
+
+    const result=await api("/api/ads",{
+      method:"POST",
+      body:data
+    });
+
+    form.reset();
+    msg("postStatus",result.message||"Ad submitted for admin approval.");
+    recent();
+  }catch(error){
+    msg("postStatus","Submission failed: "+error.message);
+  }finally{
+    button.disabled=false;
+  }
+});
+
+authUI();
+initGoogle();
+loadOptions();
+recent();
 </script>
 </body>
 </html>
