@@ -1,129 +1,526 @@
 
-const cors = {
-  "Access-Control-Allow-Origin": "https://apebazar.lk",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+const corsFor = (req) => {
+  const origin = req.headers.get("Origin") || "";
+  const allowed =
+    origin === "https://apebazar.lk" ||
+    origin === "https://www.apebazar.lk" ||
+    /^https:\/\/[a-z0-9-]+\.pages\.dev$/.test(origin);
+
+  return {
+    "Access-Control-Allow-Origin": allowed ? origin : "https://apebazar.lk",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
+    "Vary": "Origin"
+  };
 };
 
-const json = (data, status = 200) => Response.json(data, {status, headers:cors});
-const uid = () => crypto.randomUUID();
+const json = (data, status = 200, headers = {}) =>
+  Response.json(data, { status, headers });
 
-async function user(req, env) {
-  const token = (req.headers.get("Authorization") || "").replace("Bearer ", "");
-  if (!token) return null;
-  try {
-    const [body, sig] = token.split(".");
-    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(env.SESSION_SECRET), {name:"HMAC",hash:"SHA-256"}, false, ["verify"]);
-    const ok = await crypto.subtle.verify("HMAC", key, Uint8Array.from(atob(sig), c => c.charCodeAt(0)), new TextEncoder().encode(body));
-    const p = JSON.parse(atob(body));
-    return ok && p.exp > Date.now() ? p : null;
-  } catch { return null; }
+const uid = () => crypto.randomUUID();
+const enc = new TextEncoder();
+
+function b64url(bytes) {
+  let s = "";
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
-async function token(payload, secret) {
-  const body = btoa(JSON.stringify(payload)).replace(/=/g,"");
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), {name:"HMAC",hash:"SHA-256"}, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
-  return body + "." + btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=/g,"");
+function unb64url(s) {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  s += "=".repeat((4 - s.length % 4) % 4);
+  return Uint8Array.from(atob(s), c => c.charCodeAt(0));
+}
+
+async function signToken(payload, secret) {
+  const body = b64url(enc.encode(JSON.stringify(payload)));
+  const key = await crypto.subtle.importKey(
+    "raw", enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(body));
+  return body + "." + b64url(new Uint8Array(sig));
+}
+
+async function getUser(req, env) {
+  const auth = req.headers.get("Authorization") || "";
+  if (!auth.startsWith("Bearer ") || !env.SESSION_SECRET) return null;
+
+  try {
+    const token = auth.slice(7);
+    const parts = token.split(".");
+    if (parts.length !== 2) return null;
+
+    const [body, signature] = parts;
+    const key = await crypto.subtle.importKey(
+      "raw", enc.encode(env.SESSION_SECRET),
+      { name: "HMAC", hash: "SHA-256" }, false, ["verify"]
+    );
+
+    const valid = await crypto.subtle.verify(
+      "HMAC", key, unb64url(signature), enc.encode(body)
+    );
+    if (!valid) return null;
+
+    const payload = JSON.parse(new TextDecoder().decode(unb64url(body)));
+    if (!payload.id || !payload.exp || payload.exp <= Date.now()) return null;
+
+    // Read current role from D1 rather than trusting a role in the token.
+    const dbUser = await env.DB.prepare(
+      "SELECT id, email, name, role FROM users WHERE id = ?"
+    ).bind(payload.id).first();
+
+    return dbUser || null;
+  } catch {
+    return null;
+  }
+}
+
+async function readJson(req) {
+  try {
+    return await req.json();
+  } catch {
+    return null;
+  }
+}
+
+function text(value, max) {
+  return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
+
+async function handle(req, env) {
+  const url = new URL(req.url);
+  const path = url.pathname;
+  const method = req.method;
+  const headers = corsFor(req);
+
+  if (method === "OPTIONS") {
+    return new Response(null, { status: 204, headers });
+  }
+
+  if (!env.DB) return json({ error: "D1 binding DB is missing" }, 500, headers);
+
+  try {
+    // Health check
+    if (path === "/api/health" && method === "GET") {
+      return json({ ok: true, service: "apebazar-api" }, 200, headers);
+    }
+
+    // Google login
+    if (path === "/api/auth/google" && method === "POST") {
+      if (!env.GOOGLE_CLIENT_ID || !env.SESSION_SECRET) {
+        return json({ error: "Authentication is not configured" }, 500, headers);
+      }
+
+      const body = await readJson(req);
+      const credential = body?.credential;
+
+      if (typeof credential !== "string" || credential.length > 10000) {
+        return json({ error: "Missing Google credential" }, 400, headers);
+      }
+
+      const response = await fetch(
+        "https://oauth2.googleapis.com/tokeninfo?id_token=" +
+        encodeURIComponent(credential)
+      );
+      const g = await response.json();
+
+      if (
+        !response.ok ||
+        g.aud !== env.GOOGLE_CLIENT_ID ||
+        g.email_verified !== "true" ||
+        !g.email ||
+        !g.sub
+      ) {
+        return json({ error: "Invalid Google login" }, 401, headers);
+      }
+
+      const email = String(g.email).toLowerCase();
+      const name = text(g.name || email, 150);
+
+      await env.DB.prepare(`
+        INSERT OR IGNORE INTO users (email, name, google_id, email_verified)
+        VALUES (?, ?, ?, 1)
+      `).bind(email, name, g.sub).run();
+
+      await env.DB.prepare(`
+        UPDATE users SET name = ?, google_id = ?, email_verified = 1
+        WHERE email = ?
+      `).bind(name, g.sub, email).run();
+
+      const u = await env.DB.prepare(
+        "SELECT id, email, name, role FROM users WHERE email = ?"
+      ).bind(email).first();
+
+      if (!u) return json({ error: "Could not create account" }, 500, headers);
+
+      const session = await signToken({
+        id: u.id,
+        exp: Date.now() + 7 * 24 * 60 * 60 * 1000
+      }, env.SESSION_SECRET);
+
+      return json({ token: session, user: u }, 200, headers);
+    }
+
+    // Current signed-in user
+    if (path === "/api/auth/me" && method === "GET") {
+      const u = await getUser(req, env);
+      return u
+        ? json({ user: u }, 200, headers)
+        : json({ error: "Login required" }, 401, headers);
+    }
+
+    // Categories
+    if (path === "/api/categories" && method === "GET") {
+      const r = await env.DB.prepare(
+        "SELECT id, name, slug FROM categories ORDER BY name"
+      ).all();
+      return json(r.results, 200, headers);
+    }
+
+    // Districts
+    if (path === "/api/locations" && method === "GET") {
+      const r = await env.DB.prepare(
+        "SELECT id, name FROM districts ORDER BY name"
+      ).all();
+      return json(r.results, 200, headers);
+    }
+
+    // Cities, optionally filtered by district_id
+    if (path === "/api/cities" && method === "GET") {
+      const districtId = url.searchParams.get("district_id");
+      const r = districtId
+        ? await env.DB.prepare(
+            "SELECT id, name, district_id FROM cities WHERE district_id = ? ORDER BY name"
+          ).bind(Number(districtId)).all()
+        : await env.DB.prepare(
+            "SELECT id, name, district_id FROM cities ORDER BY name LIMIT 500"
+          ).all();
+
+      return json(r.results, 200, headers);
+    }
+
+    // Public approved listings
+    if (path === "/api/listings" && method === "GET") {
+      const q = url.searchParams;
+      const search = text(q.get("search") || "", 100);
+      const category = q.get("category") || "";
+      const location = q.get("location") || "";
+      const minRaw = q.get("minPrice") || "";
+      const maxRaw = q.get("maxPrice") || "";
+
+      let sql = `
+        SELECT a.id, a.title, a.description, a.price_lkr,
+               a.condition, a.created_at, a.expires_at,
+               c.name AS category, c.slug AS category_slug,
+               d.name AS district, ci.name AS city,
+               (SELECT p.photo_url FROM ad_photos p
+                WHERE p.ad_id = a.id ORDER BY p.id LIMIT 1) AS image_url
+        FROM ads a
+        LEFT JOIN categories c ON c.id = a.category_id
+        LEFT JOIN districts d ON d.id = a.district_id
+        LEFT JOIN cities ci ON ci.id = a.city_id
+        WHERE a.status = 'APPROVED'
+          AND COALESCE(a.expires_at, datetime(a.created_at, '+30 days'))
+              > datetime('now')
+      `;
+      const args = [];
+
+      if (search) {
+        sql += " AND (a.title LIKE ? OR a.description LIKE ?)";
+        args.push("%" + search + "%", "%" + search + "%");
+      }
+
+      if (category) {
+        sql += " AND (c.slug = ? OR CAST(c.id AS TEXT) = ?)";
+        args.push(category, category);
+      }
+
+      if (location) {
+        sql += " AND (d.name = ? OR CAST(d.id AS TEXT) = ?)";
+        args.push(location, location);
+      }
+
+      if (minRaw !== "" && Number.isFinite(Number(minRaw)) && Number(minRaw) >= 0) {
+        sql += " AND a.price_lkr >= ?";
+        args.push(Number(minRaw));
+      }
+
+      if (maxRaw !== "" && Number.isFinite(Number(maxRaw)) && Number(maxRaw) >= 0) {
+        sql += " AND a.price_lkr <= ?";
+        args.push(Number(maxRaw));
+      }
+
+      sql += " ORDER BY a.created_at DESC LIMIT 100";
+
+      const r = await env.DB.prepare(sql).bind(...args).all();
+      return json(r.results, 200, headers);
+    }
+
+    // Upload ad image to R2
+    if (path === "/api/upload" && method === "POST") {
+      if (!env.MEDIA) return json({ error: "R2 binding MEDIA is missing" }, 500, headers);
+
+      const u = await getUser(req, env);
+      if (!u) return json({ error: "Login required" }, 401, headers);
+
+      const form = await req.formData();
+      const f = form.get("file");
+
+      if (
+        !f || typeof f.stream !== "function" ||
+        !/^image\/(jpeg|png|webp|gif)$/.test(f.type) ||
+        f.size > 5 * 1024 * 1024
+      ) {
+        return json({ error: "Use JPG, PNG, WEBP or GIF under 5 MB" }, 400, headers);
+      }
+
+      const ext = f.type.split("/")[1].replace("jpeg", "jpg");
+      const key = `ads/${u.id}/${uid()}.${ext}`;
+
+      await env.MEDIA.put(key, f.stream(), {
+        httpMetadata: { contentType: f.type }
+      });
+
+      return json({ key, url: `${url.origin}/api/media/${key}` }, 201, headers);
+    }
+
+    // Serve ad image
+    if (path.startsWith("/api/media/") && method === "GET") {
+      if (!env.MEDIA) return new Response("Storage unavailable", { status: 500 });
+
+      let key;
+      try {
+        key = decodeURIComponent(path.slice("/api/media/".length));
+      } catch {
+        return new Response("Invalid image key", { status: 400 });
+      }
+
+      if (!key.startsWith("ads/") || key.includes("..")) {
+        return new Response("Invalid image key", { status: 400 });
+      }
+
+      const obj = await env.MEDIA.get(key);
+      if (!obj) return new Response("Not found", { status: 404 });
+
+      return new Response(obj.body, {
+        headers: {
+          ...headers,
+          "Content-Type": obj.httpMetadata?.contentType || "application/octet-stream",
+          "Cache-Control": "public, max-age=86400",
+          "X-Content-Type-Options": "nosniff"
+        }
+      });
+    }
+
+    // Submit a free advertisement
+    if (path === "/api/ads" && method === "POST") {
+      const u = await getUser(req, env);
+      if (!u) return json({ error: "Login required" }, 401, headers);
+
+      const a = await readJson(req);
+      if (!a || typeof a !== "object") {
+        return json({ error: "Invalid request body" }, 400, headers);
+      }
+
+      const title = text(a.title, 100);
+      const description = text(a.description, 2000);
+      const categoryId = Number(a.category_id);
+      const districtId = Number(a.district_id);
+      const cityId = a.city_id ? Number(a.city_id) : null;
+      const price = a.price_lkr === "" || a.price_lkr == null
+        ? 0 : Number(a.price_lkr);
+      const sellerName = text(a.seller_name || u.name || u.email, 100);
+      const sellerPhone = text(a.seller_phone, 30);
+      const condition = text(a.condition || "Used", 30);
+
+      if (
+        title.length < 3 ||
+        !description ||
+        !Number.isInteger(categoryId) ||
+        !Number.isInteger(districtId) ||
+        !Number.isFinite(price) || price < 0 ||
+        (cityId !== null && !Number.isInteger(cityId))
+      ) {
+        return json({ error: "Complete all required fields correctly" }, 400, headers);
+      }
+
+      const [category, district] = await Promise.all([
+        env.DB.prepare("SELECT id FROM categories WHERE id = ?")
+          .bind(categoryId).first(),
+        env.DB.prepare("SELECT id FROM districts WHERE id = ?")
+          .bind(districtId).first()
+      ]);
+
+      if (!category || !district) {
+        return json({ error: "Invalid category or district" }, 400, headers);
+      }
+
+      if (cityId !== null) {
+        const city = await env.DB.prepare(
+          "SELECT id FROM cities WHERE id = ? AND district_id = ?"
+        ).bind(cityId, districtId).first();
+
+        if (!city) return json({ error: "Invalid city" }, 400, headers);
+      }
+
+      // Count all submissions today in Sri Lanka time, including rejected ads.
+      const daily = await env.DB.prepare(`
+        SELECT COUNT(*) AS total
+        FROM ads
+        WHERE user_id = ?
+          AND date(created_at, '+5 hours 30 minutes')
+              = date('now', '+5 hours 30 minutes')
+      `).bind(u.id).first();
+
+      if (Number(daily?.total || 0) >= 5) {
+        return json({
+          error: "Daily limit reached. You can submit up to 5 ads per day."
+        }, 429, headers);
+      }
+
+      // Count only currently approved, unexpired ads.
+      const active = await env.DB.prepare(`
+        SELECT COUNT(*) AS total
+        FROM ads
+        WHERE user_id = ?
+          AND status = 'APPROVED'
+          AND COALESCE(expires_at, datetime(created_at, '+30 days'))
+              > datetime('now')
+      `).bind(u.id).first();
+
+      if (Number(active?.total || 0) >= 15) {
+        return json({
+          error: "You already have 15 active ads. Wait for one to expire or remove one."
+        }, 429, headers);
+      }
+
+      // package_id is omitted: it must allow NULL or have a suitable default.
+      const result = await env.DB.prepare(`
+        INSERT INTO ads (
+          user_id, category_id, district_id, city_id,
+          title, description, price_lkr, condition,
+          seller_name, seller_phone, status, expires_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING',
+                datetime('now', '+30 days'))
+      `).bind(
+        u.id, categoryId, districtId, cityId,
+        title, description, price, condition, sellerName, sellerPhone
+      ).run();
+
+      const adId = result.meta.last_row_id;
+      const photos = Array.isArray(a.photos) ? a.photos.slice(0, 8) : [];
+
+      for (const key of photos) {
+        if (typeof key !== "string" ||
+            !key.startsWith(`ads/${u.id}/`) ||
+            key.includes("..")) continue;
+
+        // Only attach images that actually exist in this user's R2 folder.
+        const obj = env.MEDIA ? await env.MEDIA.head(key) : null;
+        if (!obj) continue;
+
+        await env.DB.prepare(`
+          INSERT INTO ad_photos (ad_id, photo_url, r2_key)
+          VALUES (?, ?, ?)
+        `).bind(adId, `${url.origin}/api/media/${key}`, key).run();
+      }
+
+      return json({
+        success: true,
+        id: adId,
+        status: "PENDING",
+        free: true,
+        message: "Your free ad was submitted for admin approval."
+      }, 201, headers);
+    }
+
+    // Admin: approve or reject an ad.
+    const adminMatch = path.match(/^\/api\/admin\/ads\/(\d+)\/status$/);
+
+    if (adminMatch && method === "PATCH") {
+      const u = await getUser(req, env);
+      if (!u) return json({ error: "Login required" }, 401, headers);
+      if (u.role !== "admin") return json({ error: "Admin access required" }, 403, headers);
+
+      const body = await readJson(req);
+      const adId = Number(adminMatch[1]);
+      const status = body?.status;
+
+      if (!["APPROVED", "REJECTED"].includes(status)) {
+        return json({ error: "Status must be APPROVED or REJECTED" }, 400, headers);
+      }
+
+      const ad = await env.DB.prepare(
+        "SELECT id, user_id, status, expires_at, created_at FROM ads WHERE id = ?"
+      ).bind(adId).first();
+
+      if (!ad) return json({ error: "Ad not found" }, 404, headers);
+      if (ad.status !== "PENDING") {
+        return json({ error: "Only pending ads can be reviewed" }, 409, headers);
+      }
+
+      if (status === "APPROVED") {
+        const active = await env.DB.prepare(`
+          SELECT COUNT(*) AS total FROM ads
+          WHERE user_id = ?
+            AND status = 'APPROVED'
+            AND COALESCE(expires_at, datetime(created_at, '+30 days'))
+                > datetime('now')
+        `).bind(ad.user_id).first();
+
+        if (Number(active?.total || 0) >= 15) {
+          return json({
+            error: "This user already has 15 active ads. The ad remains pending."
+          }, 409, headers);
+        }
+
+        if (ad.expires_at && ad.expires_at <= new Date().toISOString().replace("T", " ").slice(0, 19)) {
+          return json({ error: "This ad has expired and cannot be approved" }, 409, headers);
+        }
+      }
+
+      await env.DB.prepare(
+        "UPDATE ads SET status = ? WHERE id = ? AND status = 'PENDING'"
+      ).bind(status, adId).run();
+
+      return json({ success: true, id: adId, status }, 200, headers);
+    }
+
+    return json({ error: "Route not found" }, 404, headers);
+  } catch (e) {
+    console.error("ApeBazar API error:", e);
+    return json({ error: "Server error" }, 500, headers);
+  }
 }
 
 export default {
- async fetch(req, env) {
-  if (req.method === "OPTIONS") return new Response(null,{headers:cors});
-  const url = new URL(req.url), path = url.pathname;
-  try {
-   if (path === "/api/health") return json({ok:true});
+  async fetch(req, env) {
+    const headers = corsFor(req);
 
-   if (path === "/api/auth/google" && req.method === "POST") {
-    const {credential} = await req.json();
-    const r = await fetch("https://oauth2.googleapis.com/tokeninfo?id_token="+encodeURIComponent(credential));
-    const g = await r.json();
-    if (!r.ok || g.aud !== env.GOOGLE_CLIENT_ID || g.email_verified !== "true")
-      return json({error:"Invalid Google login"},401);
+    // Reject browser requests from unapproved origins.
+    const origin = req.headers.get("Origin");
+    if (
+      origin &&
+      headers["Access-Control-Allow-Origin"] !== origin
+    ) {
+      return json({ error: "Origin not allowed" }, 403, headers);
+    }
 
-    await env.DB.prepare("INSERT OR IGNORE INTO users(email,name,google_id,email_verified) VALUES(?,?,?,1)")
-      .bind(g.email,g.name || g.email,g.sub).run();
-    await env.DB.prepare("UPDATE users SET google_id=?,email_verified=1 WHERE email=?")
-      .bind(g.sub,g.email).run();
-    const u = await env.DB.prepare("SELECT id,email,name,role FROM users WHERE email=?").bind(g.email).first();
-    return json({token:await token({id:u.id,email:u.email,role:u.role,exp:Date.now()+604800000},env.SESSION_SECRET),user:u});
-   }
+    return handle(req, env);
+  },
 
-   if (path === "/api/auth/me") {
-    const u = await user(req,env);
-    return u ? json({user:u}) : json({error:"Login required"},401);
-   }
-
-   if (path === "/api/categories")
-    return json((await env.DB.prepare("SELECT id,name,slug FROM categories ORDER BY name").all()).results);
-
-   if (path === "/api/locations")
-    return json((await env.DB.prepare("SELECT id,name FROM districts ORDER BY name").all()).results);
-
-   if (path === "/api/listings") {
-    const q = url.searchParams, search = "%"+(q.get("search")||"")+"%";
-    const rows = await env.DB.prepare(`
-     SELECT a.id,a.title,a.description,a.price_lkr,a.condition,a.created_at,
-     c.name category,d.name district,ci.name city
-     FROM ads a LEFT JOIN categories c ON c.id=a.category_id
-     LEFT JOIN districts d ON d.id=a.district_id
-     LEFT JOIN cities ci ON ci.id=a.city_id
-     WHERE a.status='APPROVED' AND (a.title LIKE ? OR a.description LIKE ?)
-     AND (?='' OR c.slug=? OR c.id=?) AND (?='' OR d.name=? OR d.id=?)
-     ORDER BY a.created_at DESC LIMIT 100`)
-     .bind(search,search,q.get("category")||"",q.get("category")||"",q.get("category")||"0",
-       q.get("location")||"",q.get("location")||"",q.get("location")||"0").all();
-    return json(rows.results);
-   }
-
-   if (path === "/api/upload" && req.method === "POST") {
-    const u = await user(req,env);
-    if (!u) return json({error:"Login required"},401);
-    const f = (await req.formData()).get("file");
-    if (!f || !/^image\/(jpeg|png|webp|gif)$/.test(f.type) || f.size>5*1024*1024)
-      return json({error:"Use JPG, PNG, WEBP or GIF under 5 MB"},400);
-    const ext = f.type.split("/")[1].replace("jpeg","jpg");
-    const key = `ads/${u.id}/${uid()}.${ext}`;
-    await env.MEDIA.put(key,f.stream(),{httpMetadata:{contentType:f.type}});
-    return json({key,url:`${url.origin}/api/media/${key}`});
-   }
-
-   if (path.startsWith("/api/media/")) {
-    const obj = await env.MEDIA.get(decodeURIComponent(path.slice(11)));
-    if (!obj) return new Response("Not found",{status:404});
-    return new Response(obj.body,{headers:{...cors,"Content-Type":obj.httpMetadata?.contentType||"image/jpeg","Cache-Control":"public, max-age=86400"}});
-   }
-
-   if (path === "/api/ads" && req.method === "POST") {
-    const u = await user(req,env);
-    if (!u) return json({error:"Login required"},401);
-    const a = await req.json();
-    if (!a.title || a.title.length<3 || !a.description || !a.category_id || !a.district_id)
-      return json({error:"Complete all required fields"},400);
-
-    const pkg = await env.DB.prepare("SELECT * FROM packages WHERE id=? AND active=1").bind(a.package_id||1).first();
-    if (!pkg) return json({error:"Invalid package"},400);
-    if (pkg.price_lkr>0) return json({error:"Payment verification is required for paid packages"},400);
-
-    const used = await env.DB.prepare("SELECT id FROM free_ad_claims WHERE user_id=? AND created_at>=datetime('now','-30 days')").bind(u.id).first();
-    if (used) return json({error:"Your free ad is already used. Try again after 30 days."},400);
-
-    const r = await env.DB.prepare(`
-     INSERT INTO ads(user_id,category_id,district_id,city_id,package_id,title,description,price_lkr,condition,seller_name,seller_phone,status)
-     VALUES(?,?,?,?,?,?,?,?,?,?,?,'PENDING')`)
-     .bind(u.id,a.category_id,a.district_id,a.city_id||null,pkg.id,a.title,a.description,
-       Math.max(0,Number(a.price_lkr)||0),a.condition||"Used",a.seller_name||u.email,a.seller_phone||"").run();
-
-    await env.DB.prepare("INSERT INTO free_ad_claims(user_id,ad_id) VALUES(?,?)").bind(u.id,r.meta.last_row_id).run();
-    for (const key of (a.photos||[]).slice(0,8))
-      if (key.startsWith(`ads/${u.id}/`))
-       await env.DB.prepare("INSERT INTO ad_photos(ad_id,photo_url,r2_key) VALUES(?,?,?)")
-        .bind(r.meta.last_row_id,`${url.origin}/api/media/${key}`,key).run();
-
-    return json({success:true,message:"Ad submitted for approval",id:r.meta.last_row_id});
-   }
-
-   return json({error:"Not found"},404);
-  } catch(e) { return json({error:"Server error",details:e.message},500); }
- }
+  // Optional daily cleanup. Add a Cron Trigger for once per day.
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil((async () => {
+      await env.DB.prepare(`
+        UPDATE ads
+        SET status = 'EXPIRED'
+        WHERE status = 'APPROVED'
+          AND COALESCE(expires_at, datetime(created_at, '+30 days'))
+              <= datetime('now')
+      `).run();
+    })());
+  }
 };
