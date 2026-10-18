@@ -5,309 +5,605 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#102a56">
-<title>ApeBazar.lk Advertisement Admin</title>
+<title>ApeBazar.lk Admin - Advertisements</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <style>
-:root{--navy:#102a56;--gold:#f4bd35;--bg:#f3f6fb}
+:root{
+  --navy:#102a56;
+  --gold:#f4bd35;
+  --bg:#f3f6fb;
+}
 *{box-sizing:border-box}
-body{margin:0;font:15px Arial,sans-serif;background:var(--bg);color:#18243a}
-header{background:var(--navy);color:white;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
-header strong{font-size:19px}
-button,select,input,textarea{font:inherit;padding:9px;border:1px solid #d6dce7;border-radius:7px}
-button{cursor:pointer;background:var(--navy);color:white;border:0;font-weight:bold}
-button.gold{background:var(--gold);color:var(--navy)}
+body{
+  margin:0;
+  font:15px Arial,sans-serif;
+  background:var(--bg);
+  color:#18243a;
+}
+header{
+  background:var(--navy);
+  color:white;
+  padding:18px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+header strong{font-size:21px}
+button,select,input,textarea{
+  font:inherit;
+  padding:10px;
+  border:1px solid #d6dce7;
+  border-radius:8px;
+}
+button{
+  cursor:pointer;
+  background:var(--navy);
+  color:white;
+  border:0;
+  font-weight:bold;
+}
+button.gold{background:var(--gold);color:#102a56}
 button.red{background:#b42318}
 button.green{background:#16803c}
 button:disabled{opacity:.5;cursor:not-allowed}
-main{max-width:950px;margin:auto;padding:8px}
-.panel{background:white;border-radius:9px;padding:10px;margin-bottom:8px;box-shadow:0 2px 8px #102a5610}
-h2{margin:0 0 8px;color:var(--navy);font-size:20px}
-select,input,textarea{width:100%;margin:4px 0 8px;background:white}
-textarea{min-height:75px}
-label{font-size:13px;font-weight:bold;display:block}
-.item{border:1px solid #e1e6ef;border-radius:8px;padding:10px;margin:7px 0;overflow-wrap:anywhere}
-.item p{white-space:pre-wrap;margin:6px 0;line-height:1.4}
-.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.actions button{flex:1;min-width:90px}
+nav{
+  display:flex;
+  gap:7px;
+  padding:12px;
+  background:white;
+}
+main{
+  max-width:1250px;
+  margin:auto;
+  padding:18px;
+}
+.panel{
+  background:white;
+  border-radius:12px;
+  padding:16px;
+  margin-bottom:15px;
+  box-shadow:0 2px 8px #102a5610;
+}
+h2{margin-top:0;color:var(--navy)}
+h3{color:var(--navy)}
+input,select,textarea{
+  width:100%;
+  margin:5px 0 10px;
+  background:white;
+}
+textarea{min-height:85px}
+label{
+  font-size:13px;
+  font-weight:bold;
+}
+.item{
+  border:1px solid #e1e6ef;
+  border-radius:10px;
+  padding:13px;
+  margin:10px 0;
+  overflow-wrap:anywhere;
+  background:white;
+}
+.item p{white-space:pre-wrap}
+.actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:10px;
+}
 .small{font-size:12px;color:#65738a}
-#notice{padding:10px;border-radius:7px;margin:8px 0;display:none;overflow-wrap:anywhere}
-#login{max-width:430px;margin:35px auto;text-align:center}
+#notice{
+  padding:12px;
+  border-radius:8px;
+  margin:12px 0;
+  display:none;
+  overflow-wrap:anywhere;
+}
+#login{
+  max-width:430px;
+  margin:65px auto;
+  text-align:center;
+}
 .hidden{display:none!important}
-.badge{display:inline-block;background:#fff0c2;color:#745200;padding:4px 8px;border-radius:20px;font-size:12px}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-#googleButton{display:flex;justify-content:center;margin:12px auto}
-.ad-photo{display:block;width:100%;max-height:320px;object-fit:contain;background:#f3f6fb;border-radius:6px;margin-bottom:8px}
-.topbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-.topbar select{flex:1;min-width:145px;margin:0}
-#refresh{white-space:nowrap}
-#who{font-size:12px;color:#fff}
-@media(max-width:420px){
- header{padding:10px}
- header strong{font-size:16px}
- main{padding:5px}
- .panel{padding:8px}
- .row{grid-template-columns:1fr}
+.badge{
+  display:inline-block;
+  background:#fff0c2;
+  color:#745200;
+  padding:4px 8px;
+  border-radius:20px;
+  font-size:12px;
+}
+#googleButton{
+  display:flex;
+  justify-content:center;
+  min-height:42px;
+  margin:20px auto;
+}
+.status{
+  padding:12px;
+  border-radius:8px;
+  background:#eef4ff;
+  margin:12px 0;
+}
+@media(max-width:600px){
+  header strong{font-size:18px}
+  main{padding:10px}
+  .panel{padding:12px}
+  button{max-width:100%}
 }
 </style>
 </head>
+
 <body>
+
 <header>
-<strong>🛒 ApeBazar.lk Admin</strong>
-<div class="topbar">
-<span id="who"></span>
-<button id="logout" class="gold hidden" type="button">Logout</button>
-</div>
+  <strong>🛒 ApeBazar.lk Admin</strong>
+  <div>
+    <span id="who"></span>
+    <button id="logout" class="gold hidden" onclick="logout()">Logout</button>
+  </div>
 </header>
 
+<!-- GOOGLE ADMIN LOGIN -->
 <section id="login" class="panel">
-<h2>Administrator Login</h2>
-<p>Sign in with an authorized Google account.</p>
-<div id="googleButton"></div>
-<p class="small">Only authorized administrator accounts can access this panel.</p>
+  <h2>Administrator Login</h2>
+  <p>Sign in with an authorized Google account.</p>
+
+  <div id="googleButton"></div>
+
+  <p class="small">
+    Only authorized administrator accounts can access this panel.
+  </p>
+  <div id="loginError" class="small" role="alert"></div>
 </section>
 
-<main id="app" class="hidden">
-<div id="notice" role="status" aria-live="polite"></div>
+<!-- ADMIN PANEL: ADVERTISEMENTS ONLY -->
+<div id="app" class="hidden">
 
-<section class="panel">
-<h2>Advertisements</h2>
-<div class="topbar">
-<select id="adFilter" aria-label="Filter advertisements">
-<option value="PENDING">Pending Ads</option>
-<option value="APPROVED">Approved Ads</option>
-<option value="REJECTED">Rejected Ads</option>
-<option value="ALL">All Advertisements</option>
-</select>
-<button id="refresh" type="button">Refresh</button>
+  <nav id="nav">
+    <button onclick="show('ads')">📢 Advertisements</button>
+  </nav>
+
+  <main>
+    <div id="notice" role="status" aria-live="polite"></div>
+
+    <section id="ads" class="page">
+      <div class="panel">
+        <h2>📢 Advertisements</h2>
+        <p class="small">
+          Review, edit, approve, or reject submitted advertisements.
+        </p>
+
+        <label for="adFilter">Filter Advertisements</label>
+        <select id="adFilter" onchange="loadAds()">
+          <option value="PENDING">Pending</option>
+          <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
+          <option value="ALL">All Advertisements</option>
+        </select>
+
+        <button onclick="loadAds()">🔄 Refresh Advertisements</button>
+
+        <div id="adList">
+          Loading advertisements…
+        </div>
+      </div>
+    </section>
+
+  </main>
 </div>
-<div id="adList" style="margin-top:8px">Loading advertisements…</div>
-</section>
-</main>
 
 <script>
 "use strict";
 
-const API="https://apebazar-admin-api.createlk.workers.dev";
-const GOOGLE_CLIENT_ID="582157960266-mvlpmqne90d9q7ja5vuhi3g1aspvtp86.apps.googleusercontent.com";
+const API = "https://apebazar-admin-api.createlk.workers.dev";
 
-let authToken=sessionStorage.getItem("apebazar_admin_token")||"";
-let me=null;
-const $=id=>document.getElementById(id);
+const GOOGLE_CLIENT_ID =
+  "582157960266-mvlpmqne90d9q7ja5vuhi3g1aspvtp86.apps.googleusercontent.com";
 
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({
- "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+let authToken = sessionStorage.getItem("apebazar_admin_token") || "";
+let me = null;
+let googleInitialized = false;
+
+const $ = id => document.getElementById(id);
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;"
 }[c]));
 
-const money=n=>"LKR "+Number(n||0).toLocaleString("en-LK");
+const money = n =>
+  "LKR " + Number(n || 0).toLocaleString("en-LK");
 
-function notice(message,error=false){
- $("notice").textContent=message;
- $("notice").style.display="block";
- $("notice").style.background=error?"#fee4e2":"#dcfae6";
- $("notice").style.color=error?"#912018":"#05603a";
- window.scrollTo({top:0,behavior:"smooth"});
+function notice(message, error = false) {
+  const el = $("notice");
+  el.textContent = message;
+  el.style.display = "block";
+  el.style.background = error ? "#fee4e2" : "#dcfae6";
+  el.style.color = error ? "#912018" : "#05603a";
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-async function api(path,options={}){
- const headers={...(options.headers||{})};
- if(authToken)headers.Authorization="Bearer "+authToken;
+async function api(path, options = {}) {
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {})
+  };
 
- if(options.body&&typeof options.body!=="string"&&!(options.body instanceof FormData)){
-  headers["Content-Type"]="application/json";
-  options={...options,body:JSON.stringify(options.body)};
- }
-
- const r=await fetch(API+path,{...options,headers});
- let data={};
- try{data=await r.json()}catch{}
- if(!r.ok)throw Error(data.error||data.message||("Request failed: "+r.status));
- return data;
-}
-
-function loginSuccess(response){
- authToken=response.token;
- me=response.user||{};
- if(!authToken)throw Error("Authentication token was not returned.");
-
- sessionStorage.setItem("apebazar_admin_token",authToken);
- $("login").classList.add("hidden");
- $("app").classList.remove("hidden");
- $("logout").classList.remove("hidden");
- $("who").textContent=me.email||"Administrator";
- loadAds().catch(e=>notice(e.message,true));
-}
-
-async function googleCredential(response){
- try{
-  notice("Signing in…");
-  const result=await api("/api/admin/google-login",{
-   method:"POST",
-   body:{credential:response.credential}
-  });
-  $("notice").style.display="none";
-  loginSuccess(result);
- }catch(e){
-  notice(e.message,true);
- }
-}
-
-function logout(){
- authToken="";
- me=null;
- sessionStorage.removeItem("apebazar_admin_token");
- $("app").classList.add("hidden");
- $("login").classList.remove("hidden");
- $("logout").classList.add("hidden");
- $("who").textContent="";
- $("adList").textContent="Sign in to manage advertisements.";
- if(window.google?.accounts?.id)google.accounts.id.disableAutoSelect();
-}
-
-$("logout").addEventListener("click",logout);
-$("refresh").addEventListener("click",()=>loadAds().catch(e=>notice(e.message,true)));
-$("adFilter").addEventListener("change",()=>loadAds().catch(e=>notice(e.message,true)));
-
-async function loadAds(){
- $("refresh").disabled=true;
- $("adList").textContent="Loading advertisements…";
-
- try{
-  const d=await api("/api/admin/ads?status="+encodeURIComponent($("adFilter").value));
-  const ads=Array.isArray(d.ads)?d.ads:[];
-
-  if(!ads.length){
-   $("adList").textContent="No advertisements found.";
-   return;
+  if (authToken) {
+    headers.Authorization = "Bearer " + authToken;
   }
 
-  $("adList").innerHTML=ads.map(a=>{
-   const id=Number(a.id);
-   const photo=a.image_url||a.photo_url||
-    (Array.isArray(a.photos)?a.photos[0]:"");
-
-   return `
-   <article class="item">
-    ${photo?`<img class="ad-photo" src="${esc(photo)}" alt="Advertisement photo" loading="lazy" onerror="this.style.display='none'">`:""}
-
-    <b>${esc(a.title||"Untitled advertisement")}</b>
-
-    <p>${esc(a.description||"")}</p>
-
-    <p><b>${money(a.price_lkr)}</b></p>
-
-    <p>
-     ${esc(a.category_name||"")}
-     ${a.district_name?" · "+esc(a.district_name):""}
-     ${a.city_name?" · "+esc(a.city_name):""}
-    </p>
-
-    <p>
-     Seller: ${esc(a.seller_name||"—")}
-     ${a.seller_phone?" · "+esc(a.seller_phone):""}
-    </p>
-
-    <p>
-     Status: <span class="badge">${esc(a.status||"UNKNOWN")}</span>
-     · ID ${esc(a.id)}
-    </p>
-
-    <details>
-     <summary>Edit advertisement</summary>
-     <label for="title${id}">Title</label>
-     <input id="title${id}" maxlength="120" value="${esc(a.title||"")}">
-
-     <label for="desc${id}">Description</label>
-     <textarea id="desc${id}">${esc(a.description||"")}</textarea>
-
-     <label for="price${id}">Price (LKR)</label>
-     <input id="price${id}" type="number" min="0" step="1" value="${Number(a.price_lkr||0)}">
-
-     <button type="button" onclick="editAd(${id})">Save Changes</button>
-    </details>
-
-    <div class="actions">
-     <button class="green" type="button" onclick="moderateAd(${id},'APPROVE')">Approve</button>
-     <button class="red" type="button" onclick="rejectAd(${id})">Reject</button>
-    </div>
-   </article>`;
-  }).join("");
-
- }catch(e){
-  $("adList").textContent="Could not load advertisements: "+e.message;
-  throw e;
- }finally{
-  $("refresh").disabled=false;
- }
-}
-
-async function editAd(id){
- try{
-  await api("/api/admin/ads/"+id,{
-   method:"PUT",
-   body:{
-    title:$("title"+id).value.trim(),
-    description:$("desc"+id).value.trim(),
-    price_lkr:Number($("price"+id).value)
-   }
+  const response = await fetch(API + path, {
+    ...options,
+    headers
   });
-  notice("Advertisement updated successfully.");
-  await loadAds();
- }catch(e){notice(e.message,true)}
+
+  let data = {};
+
+  try {
+    data = await response.json();
+  } catch {}
+
+  if (response.status === 401 || response.status === 403) {
+    if (authToken && response.status === 401) {
+      logout("Your session has expired. Please sign in again.");
+    }
+    throw Error(data.error || ("Request failed: " + response.status));
+  }
+
+  if (!response.ok) {
+    throw Error(data.error || ("Request failed: " + response.status));
+  }
+
+  return data;
 }
 
-async function moderateAd(id,action){
- if(!confirm("Are you sure you want to approve this advertisement?"))return;
+/* LOGIN */
 
- try{
-  await api("/api/admin/ads/"+id+"/moderate,{
-   method:"POST",
-   body:{action}
+function loginSuccess(response) {
+  if (!response || !response.token) {
+    throw Error("The server did not return an administrator token.");
+  }
+
+  authToken = response.token;
+  me = response.user || {};
+
+  sessionStorage.setItem("apebazar_admin_token", authToken);
+
+  $("login").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  $("logout").classList.remove("hidden");
+
+  $("who").textContent = me.email || "Administrator";
+  $("loginError").textContent = "";
+
+  // Open advertisements only.
+  show("ads");
+}
+
+async function googleCredential(response) {
+  if (!response || !response.credential) {
+    $("loginError").textContent = "Google sign-in did not return a credential.";
+    return;
+  }
+
+  try {
+    $("loginError").textContent = "Signing in…";
+
+    const result = await api("/api/admin/google-login", {
+      method: "POST",
+      body: JSON.stringify({
+        credential: response.credential
+      })
+    });
+
+    loginSuccess(result);
+  } catch (error) {
+    $("loginError").textContent = error.message;
+  }
+}
+
+function logout(message = "") {
+  authToken = "";
+  me = null;
+
+  sessionStorage.removeItem("apebazar_admin_token");
+
+  $("app").classList.add("hidden");
+  $("login").classList.remove("hidden");
+  $("logout").classList.add("hidden");
+
+  $("who").textContent = "";
+  $("adList").innerHTML = "";
+  $("loginError").textContent = message;
+
+  if (window.google?.accounts?.id) {
+    google.accounts.id.disableAutoSelect();
+  }
+}
+
+function initGoogle() {
+  if (googleInitialized) return;
+
+  if (!window.google?.accounts?.id) {
+    setTimeout(initGoogle, 300);
+    return;
+  }
+
+  googleInitialized = true;
+
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: googleCredential
   });
-  notice("Advertisement approved.");
-  await loadAds();
- }catch(e){notice(e.message,true)}
+
+  google.accounts.id.renderButton(
+    $("googleButton"),
+    {
+      theme: "outline",
+      size: "large",
+      text: "signin_with",
+      shape: "rectangular",
+      width: 280
+    }
+  );
 }
 
-async function rejectAd(id){
- const reason=prompt("Enter rejection reason:");
- if(reason===null)return;
+/* NAVIGATION: ADVERTISEMENTS ONLY */
 
- try{
-  await api("/api/admin/ads/"+id+"/moderate",{
-   method:"POST",
-   body:{action:"REJECT",reason}
+function show(page) {
+  if (page !== "ads") return;
+
+  document.querySelectorAll(".page").forEach(el => {
+    el.classList.add("hidden");
   });
-  notice("Advertisement rejected.");
-  await loadAds();
- }catch(e){notice(e.message,true)}
+
+  $("ads").classList.remove("hidden");
+
+  loadAds().catch(error => notice(error.message, true));
 }
 
-function initGoogle(){
- if(!window.google?.accounts?.id){
-  setTimeout(initGoogle,300);
-  return;
- }
- google.accounts.id.initialize({
-  client_id:GOOGLE_CLIENT_ID,
-  callback:googleCredential,
-  auto_select:false
- });
- google.accounts.id.renderButton($("googleButton"),{
-  theme:"outline",
-  size:"large",
-  text:"signin_with",
-  shape:"rectangular",
-  width:280
- });
+/* LOAD ADVERTISEMENTS */
+
+async function loadAds() {
+  const list = $("adList");
+  const filter = $("adFilter").value;
+
+  list.innerHTML = "<p>Loading advertisements…</p>";
+
+  try {
+    const data = await api(
+      "/api/admin/ads?status=" + encodeURIComponent(filter)
+    );
+
+    const ads = data.ads || [];
+
+    if (!ads.length) {
+      list.innerHTML = "<p>No advertisements found.</p>";
+      return;
+    }
+
+    list.innerHTML = ads.map(a => {
+      const id = Number(a.id);
+
+      if (!Number.isSafeInteger(id) || id < 0) {
+        return "";
+      }
+
+      const status = String(a.status || "").toUpperCase();
+
+      return `
+        <div class="item">
+          <h3>${esc(a.title || "Untitled advertisement")}</h3>
+
+          <p>${esc(a.description || "")}</p>
+
+          <p>
+            <b>${money(a.price_lkr)}</b>
+            · ${esc(a.category_name || "Uncategorized")}
+            · ${esc(a.district_name || "")}
+            ${esc(a.city_name || "")}
+          </p>
+
+          <p>
+            Status:
+            <span class="badge">${esc(a.status || "UNKNOWN")}</span>
+            · ID ${esc(a.id)}
+          </p>
+
+          ${a.image_url ? `
+            <p>
+              <a href="${esc(a.image_url)}"
+                 target="_blank"
+                 rel="noopener noreferrer">
+                View advertisement image
+              </a>
+            </p>
+          ` : ""}
+
+          <details>
+            <summary>Edit advertisement</summary>
+
+            <label for="title${id}">Title</label>
+            <input
+              id="title${id}"
+              value="${esc(a.title || "")}"
+              maxlength="250"
+            >
+
+            <label for="desc${id}">Description</label>
+            <textarea id="desc${id}">${esc(a.description || "")}</textarea>
+
+            <label for="price${id}">Price (LKR)</label>
+            <input
+              id="price${id}"
+              type="number"
+              min="0"
+              step="0.01"
+              value="${Number(a.price_lkr || 0)}"
+            >
+
+            <button onclick="editAd(${id})">
+              Save Changes
+            </button>
+          </details>
+
+          <div class="actions">
+            ${status !== "APPROVED" ? `
+              <button class="green"
+                onclick="moderateAd(${id}, 'APPROVE')">
+                Approve
+              </button>
+            ` : ""}
+
+            ${status !== "REJECTED" ? `
+              <button class="red"
+                onclick="rejectAd(${id})">
+                Reject
+              </button>
+            ` : ""}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    if (!list.innerHTML.trim()) {
+      list.innerHTML = "<p>No valid advertisements found.</p>";
+    }
+
+  } catch (error) {
+    list.innerHTML = `
+      <p role="alert">${esc(error.message)}</p>
+      <button onclick="loadAds()">Try Again</button>
+    `;
+    throw error;
+  }
 }
+
+/* EDIT ADVERTISEMENT */
+
+async function editAd(id) {
+  const title = $("title" + id).value.trim();
+  const description = $("desc" + id).value.trim();
+  const price = Number($("price" + id).value);
+
+  if (!title) {
+    notice("Please enter an advertisement title.", true);
+    return;
+  }
+
+  if (!Number.isFinite(price) || price < 0) {
+    notice("Please enter a valid advertisement price.", true);
+    return;
+  }
+
+  try {
+    await api("/api/admin/ads/" + id, {
+      method: "PUT",
+      body: JSON.stringify({
+        title,
+        description,
+        price_lkr: price
+      })
+    });
+
+    notice("Advertisement updated successfully.");
+    await loadAds();
+
+  } catch (error) {
+    notice(error.message, true);
+  }
+}
+
+/* APPROVE ADVERTISEMENT */
+
+async function moderateAd(id, action) {
+  if (action !== "APPROVE") return;
+
+  if (!confirm("Are you sure you want to approve this advertisement?")) {
+    return;
+  }
+
+  try {
+    await api("/api/admin/ads/" + id + "/moderate", {
+      method: "POST",
+      body: JSON.stringify({ action })
+    });
+
+    notice("Advertisement approved successfully.");
+    await loadAds();
+
+  } catch (error) {
+    notice(error.message, true);
+  }
+}
+
+/* REJECT ADVERTISEMENT */
+
+async function rejectAd(id) {
+  const reason = prompt("Enter rejection reason:");
+
+  if (reason === null) return;
+
+  if (!reason.trim()) {
+    notice("Please provide a rejection reason.", true);
+    return;
+  }
+
+  if (!confirm("Are you sure you want to reject this advertisement?")) {
+    return;
+  }
+
+  try {
+    await api("/api/admin/ads/" + id + "/moderate", {
+      method: "POST",
+      body: JSON.stringify({
+        action: "REJECT",
+        reason: reason.trim()
+      })
+    });
+
+    notice("Advertisement rejected successfully.");
+    await loadAds();
+
+  } catch (error) {
+    notice(error.message, true);
+  }
+}
+
+/* RESTORE SAVED SESSION */
+
+async function restoreSession() {
+  if (!authToken) return;
+
+  try {
+    // Verify that the saved token is still valid.
+    await api("/api/admin/dashboard");
+
+    loginSuccess({
+      token: authToken,
+      user: { email: "Administrator" }
+    });
+
+  } catch (error) {
+    if (authToken) {
+      logout("Please sign in with an authorized administrator account.");
+    }
+  }
+}
+
+/* START */
 
 initGoogle();
-
-if(authToken){
- api("/api/admin/dashboard")
-  .then(()=>loginSuccess({token:authToken,user:{email:"Administrator"}}))
-  .catch(()=>logout());
-}
+restoreSession();
 </script>
+
 </body>
 </html>
