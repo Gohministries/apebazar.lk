@@ -5,46 +5,58 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#102a56">
-<title>ApeBazar.lk Admin</title>
+<title>ApeBazar.lk Advertisement Admin</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{--navy:#102a56;--gold:#f4bd35;--bg:#f3f6fb}
 *{box-sizing:border-box}
 body{margin:0;font:15px Arial,sans-serif;background:var(--bg);color:#18243a}
-header{background:var(--navy);color:white;padding:18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-header strong{font-size:21px}
-button,select,input,textarea{font:inherit;padding:10px;border:1px solid #d6dce7;border-radius:8px}
+header{background:var(--navy);color:white;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+header strong{font-size:19px}
+button,select,input,textarea{font:inherit;padding:9px;border:1px solid #d6dce7;border-radius:7px}
 button{cursor:pointer;background:var(--navy);color:white;border:0;font-weight:bold}
-button.gold{background:var(--gold);color:#102a56}
+button.gold{background:var(--gold);color:var(--navy)}
 button.red{background:#b42318}
 button.green{background:#16803c}
 button:disabled{opacity:.5;cursor:not-allowed}
-nav{display:flex;gap:7px;padding:12px;background:white;overflow-x:auto}
-nav button{white-space:nowrap}
-main{max-width:1250px;margin:auto;padding:18px}
-.panel,.stat{background:white;border-radius:12px;padding:16px;margin-bottom:15px;box-shadow:0 2px 8px #102a5610}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
-.stat b{font-size:27px;display:block;margin-top:8px;color:var(--navy)}
-h2{margin-top:0;color:var(--navy)}
-h3{color:var(--navy)}
-input,select,textarea{width:100%;margin:5px 0 10px;background:white}
-textarea{min-height:85px}
-label{font-size:13px;font-weight:bold}
-.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
-.item{border:1px solid #e1e6ef;border-radius:10px;padding:13px;margin:10px 0;overflow-wrap:anywhere}
-.item p{white-space:pre-wrap}
-.actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+main{max-width:950px;margin:auto;padding:8px}
+.panel{background:white;border-radius:9px;padding:10px;margin-bottom:8px;box-shadow:0 2px 8px #102a5610}
+h2{margin:0 0 8px;color:var(--navy);font-size:20px}
+select,input,textarea{width:100%;margin:4px 0 8px;background:white}
+textarea{min-height:75px}
+label{font-size:13px;font-weight:bold;display:block}
+.item{border:1px solid #e1e6ef;border-radius:8px;padding:10px;margin:7px 0;overflow-wrap:anywhere}
+.item p{white-space:pre-wrap;margin:6px 0;line-height:1.4}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.actions button{flex:1;min-width:90px}
 .small{font-size:12px;color:#65738a}
-#notice{padding:12px;border-radius:8px;margin:12px 0;display:none}
-#login{max-width:430px;margin:65px auto;text-align:center}
+#notice{padding:10px;border-radius:7px;margin:8px 0;display:none;overflow-wrap:anywhere}
+#login{max-width:430px;margin:35px auto;text-align:center}
 .hidden{display:none!important}
 .badge{display:inline-block;background:#fff0c2;color:#745200;padding:4px 8px;border-radius:20px;font-size:12px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#googleButton{display:flex;justify-content:center;margin:12px auto}
+.ad-photo{display:block;width:100%;max-height:320px;object-fit:contain;background:#f3f6fb;border-radius:6px;margin-bottom:8px}
+.topbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.topbar select{flex:1;min-width:145px;margin:0}
+#refresh{white-space:nowrap}
+#who{font-size:12px;color:#fff}
+@media(max-width:420px){
+ header{padding:10px}
+ header strong{font-size:16px}
+ main{padding:5px}
+ .panel{padding:8px}
+ .row{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
 <header>
 <strong>🛒 ApeBazar.lk Admin</strong>
-<div><span id="who"></span> <button id="logout" class="gold hidden" onclick="logout()">Logout</button></div>
+<div class="topbar">
+<span id="who"></span>
+<button id="logout" class="gold hidden" type="button">Logout</button>
+</div>
 </header>
 
 <section id="login" class="panel">
@@ -54,343 +66,247 @@ label{font-size:13px;font-weight:bold}
 <p class="small">Only authorized administrator accounts can access this panel.</p>
 </section>
 
-<div id="app" class="hidden">
-<nav id="nav">
-<button onclick="show('dashboard')">Dashboard</button>
-<button onclick="show('ads')">Advertisements</button>
-<button onclick="show('payments')">Payments</button>
-<button onclick="show('packages')">Packages</button>
-<button onclick="show('banks')">Bank Accounts</button>
-<button onclick="show('categories')">Categories</button>
-<button onclick="show('locations')">Locations</button>
-<button onclick="show('admins')">Administrators</button>
-</nav>
+<main id="app" class="hidden">
+<div id="notice" role="status" aria-live="polite"></div>
 
-<main>
-<div id="notice"></div>
-<section id="dashboard" class="page">
-<h2>Dashboard</h2>
-<div class="grid">
-<div class="stat">Pending Advertisements<b id="pending">—</b></div>
-<div class="stat">Approved This Month<b id="approved">—</b></div>
-<div class="stat">Monthly Revenue (LKR)<b id="monthly">—</b></div>
-<div class="stat">Lifetime Revenue (LKR)<b id="lifetime">—</b></div>
-</div>
-<button onclick="loadDashboard()">Refresh Dashboard</button>
-</section>
-
-<section id="ads" class="page hidden">
-<div class="panel">
+<section class="panel">
 <h2>Advertisements</h2>
-<select id="adFilter" onchange="loadAds()">
-<option value="PENDING">Pending</option>
-<option value="APPROVED">Approved</option>
-<option value="REJECTED">Rejected</option>
+<div class="topbar">
+<select id="adFilter" aria-label="Filter advertisements">
+<option value="PENDING">Pending Ads</option>
+<option value="APPROVED">Approved Ads</option>
+<option value="REJECTED">Rejected Ads</option>
 <option value="ALL">All Advertisements</option>
 </select>
-<div id="adList">Loading…</div>
+<button id="refresh" type="button">Refresh</button>
 </div>
-</section>
-
-<section id="payments" class="page hidden">
-<div class="panel"><h2>Payments</h2><button onclick="loadPayments()">Refresh</button><div id="paymentList"></div></div>
-</section>
-
-<section id="packages" class="page hidden">
-<div class="panel"><h2>Packages</h2><div id="packageList"></div></div>
-</section>
-
-<section id="banks" class="page hidden">
-<div class="panel"><h2>Bank Accounts</h2><div id="bankList"></div></div>
-</section>
-
-<section id="categories" class="page hidden">
-<div class="panel">
-<h2>Categories</h2>
-<form id="categoryForm">
-<label>Category Name</label><input name="name" required>
-<label>Slug (e.g. mobile-phones)</label><input name="slug" required pattern="[a-zA-Z0-9-]+">
-<button class="gold">Add Category</button>
-</form>
-<div id="categoryList"></div>
-</div>
-<div class="panel">
-<h3>Add Subcategory</h3>
-<form id="subForm">
-<label>Category</label><select name="category_id" id="subCategory" required></select>
-<label>Subcategory Name</label><input name="name" required>
-<button>Add Subcategory</button>
-</form>
-</div>
-</section>
-
-<section id="locations" class="page hidden">
-<div class="panel">
-<h2>Districts and Cities</h2>
-<form id="districtForm"><label>New District</label><input name="name" required><button>Add District</button></form>
-<hr>
-<form id="cityForm">
-<label>District</label><select name="district_id" id="cityDistrict" required></select>
-<label>City Name</label><input name="name" required>
-<button>Add City</button>
-</form>
-<div id="locationList"></div>
-</div>
-</section>
-
-<section id="admins" class="page hidden">
-<div class="panel">
-<h2>Administrator Management</h2>
-<form id="adminForm">
-<label>Email Address</label><input type="email" name="email" required>
-<label>Role</label><select name="role"><option value="AD_MODERATOR">Ad Moderator</option><option value="CATEGORY_ADMIN">Category Admin</option><option value="VIEWER">Viewer</option></select>
-<button>Add / Update Administrator</button>
-</form>
-<div id="adminList"></div>
-</div>
+<div id="adList" style="margin-top:8px">Loading advertisements…</div>
 </section>
 </main>
-</div>
 
 <script>
+"use strict";
+
 const API="https://apebazar-admin-api.createlk.workers.dev";
 const GOOGLE_CLIENT_ID="582157960266-mvlpmqne90d9q7ja5vuhi3g1aspvtp86.apps.googleusercontent.com";
 
 let authToken=sessionStorage.getItem("apebazar_admin_token")||"";
 let me=null;
 const $=id=>document.getElementById(id);
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({
+ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+}[c]));
+
 const money=n=>"LKR "+Number(n||0).toLocaleString("en-LK");
 
 function notice(message,error=false){
-  $("notice").textContent=message;
-  $("notice").style.display="block";
-  $("notice").style.background=error?"#fee4e2":"#dcfae6";
-  $("notice").style.color=error?"#912018":"#05603a";
-  window.scrollTo({top:0,behavior:"smooth"});
+ $("notice").textContent=message;
+ $("notice").style.display="block";
+ $("notice").style.background=error?"#fee4e2":"#dcfae6";
+ $("notice").style.color=error?"#912018":"#05603a";
+ window.scrollTo({top:0,behavior:"smooth"});
 }
+
 async function api(path,options={}){
-  const headers={"Content-Type":"application/json",...(options.headers||{})};
-  if(authToken)headers.Authorization="Bearer "+authToken;
-  const r=await fetch(API+path,{...options,headers});
-  let data={};
-  try{data=await r.json()}catch{}
-  if(!r.ok)throw Error(data.error||("Request failed: "+r.status));
-  return data;
+ const headers={...(options.headers||{})};
+ if(authToken)headers.Authorization="Bearer "+authToken;
+
+ if(options.body&&typeof options.body!=="string"&&!(options.body instanceof FormData)){
+  headers["Content-Type"]="application/json";
+  options={...options,body:JSON.stringify(options.body)};
+ }
+
+ const r=await fetch(API+path,{...options,headers});
+ let data={};
+ try{data=await r.json()}catch{}
+ if(!r.ok)throw Error(data.error||data.message||("Request failed: "+r.status));
+ return data;
 }
+
 function loginSuccess(response){
-  authToken=response.token;
-  me=response.user||{};
-  sessionStorage.setItem("apebazar_admin_token",authToken);
-  $("login").classList.add("hidden");
-  $("app").classList.remove("hidden");
-  $("logout").classList.remove("hidden");
-  $("who").textContent=me.email||"";
-  show("dashboard");
+ authToken=response.token;
+ me=response.user||{};
+ if(!authToken)throw Error("Authentication token was not returned.");
+
+ sessionStorage.setItem("apebazar_admin_token",authToken);
+ $("login").classList.add("hidden");
+ $("app").classList.remove("hidden");
+ $("logout").classList.remove("hidden");
+ $("who").textContent=me.email||"Administrator";
+ loadAds().catch(e=>notice(e.message,true));
 }
-function googleCredential(response){
-  api("/api/admin/google-login",{method:"POST",body:JSON.stringify({credential:response.credential})})
-    .then(loginSuccess).catch(e=>notice(e.message,true));
+
+async function googleCredential(response){
+ try{
+  notice("Signing in…");
+  const result=await api("/api/admin/google-login",{
+   method:"POST",
+   body:{credential:response.credential}
+  });
+  $("notice").style.display="none";
+  loginSuccess(result);
+ }catch(e){
+  notice(e.message,true);
+ }
 }
+
 function logout(){
-  authToken="";
-  me=null;
-  sessionStorage.removeItem("apebazar_admin_token");
-  $("app").classList.add("hidden");
-  $("login").classList.remove("hidden");
-  $("logout").classList.add("hidden");
-  $("who").textContent="";
-  if(window.google?.accounts?.id)google.accounts.id.disableAutoSelect();
+ authToken="";
+ me=null;
+ sessionStorage.removeItem("apebazar_admin_token");
+ $("app").classList.add("hidden");
+ $("login").classList.remove("hidden");
+ $("logout").classList.add("hidden");
+ $("who").textContent="";
+ $("adList").textContent="Sign in to manage advertisements.";
+ if(window.google?.accounts?.id)google.accounts.id.disableAutoSelect();
 }
-function show(page){
-  document.querySelectorAll(".page").forEach(el=>el.classList.add("hidden"));
-  $(page).classList.remove("hidden");
-  const tasks={
-    dashboard:loadDashboard,
-    ads:loadAds,
-    payments:loadPayments,
-    packages:loadPackages,
-    banks:loadBanks,
-    categories:loadCategories,
-    locations:loadLocations,
-    admins:loadAdmins
-  };
-  (tasks[page]||(()=>{}))().catch(e=>notice(e.message,true));
-}
-async function loadDashboard(){
-  const d=await api("/api/admin/dashboard");
-  $("pending").textContent=d.pending??0;
-  $("approved").textContent=d.approved_this_month??0;
-  $("monthly").textContent=money(d.monthly_revenue);
-  $("lifetime").textContent=money(d.lifetime_revenue);
-}
+
+$("logout").addEventListener("click",logout);
+$("refresh").addEventListener("click",()=>loadAds().catch(e=>notice(e.message,true)));
+$("adFilter").addEventListener("change",()=>loadAds().catch(e=>notice(e.message,true)));
+
 async function loadAds(){
+ $("refresh").disabled=true;
+ $("adList").textContent="Loading advertisements…";
+
+ try{
   const d=await api("/api/admin/ads?status="+encodeURIComponent($("adFilter").value));
-  $("adList").innerHTML=(d.ads||[]).map(a=>`
-    <div class="item">
-      <b>${esc(a.title||"Untitled advertisement")}</b>
-      <p>${esc(a.description||"")}</p>
-      <p><b>${money(a.price_lkr)}</b> · ${esc(a.category_name||"")} · ${esc(a.district_name||"")} ${esc(a.city_name||"")}</p>
-      <p>Status: <span class="badge">${esc(a.status)}</span> · ID ${esc(a.id)}</p>
-      <details><summary>Edit advertisement</summary>
-        <label>Title</label><input id="title${a.id}" value="${esc(a.title)}">
-        <label>Description</label><textarea id="desc${a.id}">${esc(a.description)}</textarea>
-        <label>Price (LKR)</label><input id="price${a.id}" type="number" min="0" value="${Number(a.price_lkr||0)}">
-        <button onclick="editAd(${Number(a.id)})">Save Changes</button>
-      </details>
-      <div class="actions">
-        <button class="green" onclick="moderateAd(${Number(a.id)},'APPROVE')">Approve</button>
-        <button class="red" onclick="rejectAd(${Number(a.id)})">Reject</button>
-      </div>
-    </div>`).join("")||"<p>No advertisements found.</p>";
+  const ads=Array.isArray(d.ads)?d.ads:[];
+
+  if(!ads.length){
+   $("adList").textContent="No advertisements found.";
+   return;
+  }
+
+  $("adList").innerHTML=ads.map(a=>{
+   const id=Number(a.id);
+   const photo=a.image_url||a.photo_url||
+    (Array.isArray(a.photos)?a.photos[0]:"");
+
+   return `
+   <article class="item">
+    ${photo?`<img class="ad-photo" src="${esc(photo)}" alt="Advertisement photo" loading="lazy" onerror="this.style.display='none'">`:""}
+
+    <b>${esc(a.title||"Untitled advertisement")}</b>
+
+    <p>${esc(a.description||"")}</p>
+
+    <p><b>${money(a.price_lkr)}</b></p>
+
+    <p>
+     ${esc(a.category_name||"")}
+     ${a.district_name?" · "+esc(a.district_name):""}
+     ${a.city_name?" · "+esc(a.city_name):""}
+    </p>
+
+    <p>
+     Seller: ${esc(a.seller_name||"—")}
+     ${a.seller_phone?" · "+esc(a.seller_phone):""}
+    </p>
+
+    <p>
+     Status: <span class="badge">${esc(a.status||"UNKNOWN")}</span>
+     · ID ${esc(a.id)}
+    </p>
+
+    <details>
+     <summary>Edit advertisement</summary>
+     <label for="title${id}">Title</label>
+     <input id="title${id}" maxlength="120" value="${esc(a.title||"")}">
+
+     <label for="desc${id}">Description</label>
+     <textarea id="desc${id}">${esc(a.description||"")}</textarea>
+
+     <label for="price${id}">Price (LKR)</label>
+     <input id="price${id}" type="number" min="0" step="1" value="${Number(a.price_lkr||0)}">
+
+     <button type="button" onclick="editAd(${id})">Save Changes</button>
+    </details>
+
+    <div class="actions">
+     <button class="green" type="button" onclick="moderateAd(${id},'APPROVE')">Approve</button>
+     <button class="red" type="button" onclick="rejectAd(${id})">Reject</button>
+    </div>
+   </article>`;
+  }).join("");
+
+ }catch(e){
+  $("adList").textContent="Could not load advertisements: "+e.message;
+  throw e;
+ }finally{
+  $("refresh").disabled=false;
+ }
 }
+
 async function editAd(id){
-  await api("/api/admin/ads/"+id,{method:"PUT",body:JSON.stringify({
-    title:$("title"+id).value,
-    description:$("desc"+id).value,
+ try{
+  await api("/api/admin/ads/"+id,{
+   method:"PUT",
+   body:{
+    title:$("title"+id).value.trim(),
+    description:$("desc"+id).value.trim(),
     price_lkr:Number($("price"+id).value)
-  })});
-  notice("Advertisement updated.");
-  loadAds();
-}
-async function moderateAd(id,action){
-  if(!confirm("Are you sure you want to "+action.toLowerCase()+" this advertisement?"))return;
-  await api("/api/admin/ads/"+id+"/moderate",{method:"POST",body:JSON.stringify({action})});
-  notice("Advertisement "+action.toLowerCase()+"d.");
+   }
+  });
+  notice("Advertisement updated successfully.");
   await loadAds();
-  await loadDashboard();
+ }catch(e){notice(e.message,true)}
 }
+
+async function moderateAd(id,action){
+ if(!confirm("Are you sure you want to approve this advertisement?"))return;
+
+ try{
+  await api("/api/admin/ads/"+id+"/moderate,{
+   method:"POST",
+   body:{action}
+  });
+  notice("Advertisement approved.");
+  await loadAds();
+ }catch(e){notice(e.message,true)}
+}
+
 async function rejectAd(id){
-  const reason=prompt("Enter rejection reason:");
-  if(reason===null)return;
-  await api("/api/admin/ads/"+id+"/moderate",{method:"POST",body:JSON.stringify({action:"REJECT",reason})});
+ const reason=prompt("Enter rejection reason:");
+ if(reason===null)return;
+
+ try{
+  await api("/api/admin/ads/"+id+"/moderate",{
+   method:"POST",
+   body:{action:"REJECT",reason}
+  });
   notice("Advertisement rejected.");
   await loadAds();
-  await loadDashboard();
+ }catch(e){notice(e.message,true)}
 }
-async function loadPayments(){
-  const d=await api("/api/admin/payments");
-  $("paymentList").innerHTML=(d.payments||[]).map(p=>`
-    <div class="item"><b>Payment #${esc(p.id)}</b>
-      <p>Advertisement: ${esc(p.ad_title||p.ad_id||"—")}</p>
-      <p>User: ${esc(p.user_email||"—")}</p>
-      <p>Amount: ${money(p.amount_lkr)} · Status: ${esc(p.status)}</p>
-      ${p.slip_url?`<p><a href="${esc(p.slip_url)}" target="_blank" rel="noopener">View payment slip</a></p>`:""}
-      ${String(p.status).toUpperCase()!=="VERIFIED"&&String(p.status).toUpperCase()!=="REJECTED"?`
-      <div class="actions">
-      <button class="green" onclick="verifyPayment(${Number(p.id)},'VERIFY')">Verify</button>
-      <button class="red" onclick="verifyPayment(${Number(p.id)},'REJECT')">Reject</button>
-      </div>`:""}
-    </div>`).join("")||"<p>No payments found.</p>";
-}
-async function verifyPayment(id,action){
-  const note=prompt("Optional note:")||"";
-  if(!confirm(action+" this payment?"))return;
-  await api("/api/admin/payments/"+id+"/verify",{method:"POST",body:JSON.stringify({action,note})});
-  notice("Payment "+action.toLowerCase()+"d.");
-  await loadPayments();
-  await loadDashboard();
-}
-async function loadPackages(){
-  const d=await api("/api/admin/packages");
-  $("packageList").innerHTML=(d.packages||[]).map(p=>`
-    <div class="item"><b>${esc(p.name)}</b>
-      <label>Price (LKR)</label><input type="number" min="0" id="pkgPrice${p.id}" value="${Number(p.price_lkr||0)}">
-      <label>Duration (days)</label><input type="number" min="1" id="pkgDays${p.id}" value="${Number(p.duration_days||30)}">
-      <label><input type="checkbox" id="pkgActive${p.id}" style="width:auto" ${p.active?"checked":""}> Active</label>
-      <button onclick="savePackage(${Number(p.id)})">Save Package</button>
-    </div>`).join("")||"<p>No packages found.</p>";
-}
-async function savePackage(id){
-  await api("/api/admin/packages/"+id,{method:"PUT",body:JSON.stringify({
-    price_lkr:Number($("pkgPrice"+id).value),
-    duration_days:Number($("pkgDays"+id).value),
-    active:$("pkgActive"+id).checked
-  })});
-  notice("Package updated.");
-  await loadPackages();
-}
-async function loadBanks(){
-  const d=await api("/api/admin/banks");
-  $("bankList").innerHTML=(d.accounts||[]).map(b=>`
-    <div class="item"><b>Bank Account #${esc(b.id)}</b>
-      ${field(b.id,"label","Label",b.label)}
-      ${field(b.id,"bank_name","Bank Name",b.bank_name)}
-      ${field(b.id,"branch","Branch",b.branch)}
-      ${field(b.id,"account_holder","Account Holder",b.account_holder)}
-      ${field(b.id,"account_number","Account Number",b.account_number)}
-      <label>Instructions</label><textarea id="bank${b.id}instructions">${esc(b.instructions)}</textarea>
-      <label><input type="checkbox" id="bank${b.id}active" style="width:auto" ${b.active?"checked":""}> Active</label>
-      <button onclick="saveBank(${Number(b.id)})">Save Bank Details</button>
-    </div>`).join("")||"<p>No bank accounts found.</p>";
-}
-function field(id,key,label,value){
-  return `<label>${label}</label><input id="bank${id}${key}" value="${esc(value)}">`;
-}
-async function saveBank(id){
-  const get=k=>$("bank"+id+k).value;
-  await api("/api/admin/banks/"+id,{method:"PUT",body:JSON.stringify({
-    label:get("label"),bank_name:get("bank_name"),branch:get("branch"),
-    account_holder:get("account_holder"),account_number:get("account_number"),
-    instructions:get("instructions"),active:$("bank"+id+"active").checked
-  })});
-  notice("Bank details saved.");
-  await loadBanks();
-}
-async function loadCategories(){
-  const d=await api("/api/admin/categories");
-  const cats=d.categories||[];
-  $("categoryList").innerHTML=cats.map(c=>`<div class="item">${esc(c.name)} <span class="small">(${esc(c.slug||"")})</span></div>`).join("")||"<p>No categories.</p>";
-  $("subCategory").innerHTML=cats.map(c=>`<option value="${Number(c.id)}">${esc(c.name)}</option>`).join("");
-}
-$("categoryForm").onsubmit=async e=>{
-  e.preventDefault();
-  const f=new FormData(e.target);
-  await api("/api/admin/categories",{method:"POST",body:JSON.stringify({name:f.get("name"),slug:f.get("slug")})});
-  e.target.reset();notice("Category added.");await loadCategories();
-};
-$("subForm").onsubmit=async e=>{
-  e.preventDefault();const f=new FormData(e.target);
-  await api("/api/admin/subcategories",{method:"POST",body:JSON.stringify({category_id:Number(f.get("category_id")),name:f.get("name")})});
-  e.target.reset();notice("Subcategory added.");
-};
-async function loadLocations(){
-  const d=await api("/api/admin/locations");
-  const districts=d.districts||[],cities=d.cities||[];
-  $("cityDistrict").innerHTML=districts.map(x=>`<option value="${Number(x.id)}">${esc(x.name)}</option>`).join("");
-  $("locationList").innerHTML="<h3>Districts</h3>"+districts.map(x=>`<div>${esc(x.name)}</div>`).join("")+
-    "<h3>Cities</h3>"+cities.map(x=>`<div>${esc(x.name)} <span class='small'>— district ID ${esc(x.district_id)}</span></div>`).join("");
-}
-$("districtForm").onsubmit=async e=>{
-  e.preventDefault();const f=new FormData(e.target);
-  await api("/api/admin/districts",{method:"POST",body:JSON.stringify({name:f.get("name")})});
-  e.target.reset();notice("District added.");await loadLocations();
-};
-$("cityForm").onsubmit=async e=>{
-  e.preventDefault();const f=new FormData(e.target);
-  await api("/api/admin/cities",{method:"POST",body:JSON.stringify({district_id:Number(f.get("district_id")),name:f.get("name")})});
-  e.target.reset();notice("City added.");await loadLocations();
-};
-async function loadAdmins(){
-  const d=await api("/api/admin/admins");
-  $("adminList").innerHTML=(d.admins||[]).map(a=>`<div class="item">${esc(a.email)} <span class="badge">${esc(a.role)}</span></div>`).join("")||"<p>No administrators found.</p>";
-}
-$("adminForm").onsubmit=async e=>{
-  e.preventDefault();const f=new FormData(e.target);
-  await api("/api/admin/admins",{method:"POST",body:JSON.stringify({email:f.get("email"),role:f.get("role")})});
-  e.target.reset();notice("Administrator added or updated.");await loadAdmins();
-};
 
 function initGoogle(){
-  if(!window.google?.accounts?.id){setTimeout(initGoogle,300);return}
-  google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:googleCredential});
-  google.accounts.id.renderButton($("googleButton"),{theme:"outline",size:"large",text:"signin_with",shape:"rectangular",width:280});
+ if(!window.google?.accounts?.id){
+  setTimeout(initGoogle,300);
+  return;
+ }
+ google.accounts.id.initialize({
+  client_id:GOOGLE_CLIENT_ID,
+  callback:googleCredential,
+  auto_select:false
+ });
+ google.accounts.id.renderButton($("googleButton"),{
+  theme:"outline",
+  size:"large",
+  text:"signin_with",
+  shape:"rectangular",
+  width:280
+ });
 }
+
 initGoogle();
 
 if(authToken){
-  api("/api/admin/dashboard").then(()=>loginSuccess({token:authToken,user:{email:"Administrator"}}))
-    .catch(()=>logout());
+ api("/api/admin/dashboard")
+  .then(()=>loginSuccess({token:authToken,user:{email:"Administrator"}}))
+  .catch(()=>logout());
 }
 </script>
 </body>
