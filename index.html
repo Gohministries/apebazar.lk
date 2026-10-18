@@ -1,198 +1,246 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1628">
 <title>ApeBazar.lk - Buy & Sell in Sri Lanka</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <style>
 :root{
-  --bg:#0b1628;
-  --panel:#13233b;
-  --gold:#c5a64b;
-  --text:#f4f7fc;
-  --muted:#aab8cc;
+ --bg:#0b1628;
+ --panel:#13233b;
+ --gold:#ffd166;
+ --text:#f4f7fc;
+ --muted:#aab8cc;
+ --border:#283c57;
 }
 *{box-sizing:border-box}
 body{
-  margin:0;
-  background:var(--bg);
-  color:var(--text);
-  font:14px Arial,sans-serif;
+ margin:0;
+ background:var(--bg);
+ color:var(--text);
+ font:14px Arial,sans-serif;
 }
+body.popup-open{overflow:hidden}
 header{
-  position:sticky;
-  top:0;
-  background:#0a1527;
-  border-bottom:1px solid #283c57;
-  z-index:5;
+ position:sticky;
+ top:0;
+ background:#0a1527;
+ border-bottom:1px solid var(--border);
+ z-index:5;
 }
+nav,main{max-width:950px;margin:auto}
 nav{
-  max-width:950px;
-  margin:auto;
-  min-height:62px;
-  padding:8px 14px;
-  display:flex;
-  align-items:center;
-  gap:10px;
+ min-height:60px;
+ padding:8px 12px;
+ display:flex;
+ align-items:center;
+ gap:10px;
 }
 .brand{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  margin-right:auto;
-  color:white;
-  text-decoration:none;
-  font-size:17px;
-  font-weight:bold;
+ margin-right:auto;
+ color:white;
+ text-decoration:none;
+ font-weight:bold;
+ font-size:17px;
 }
 .brand img{
-  width:36px;
-  height:36px;
-  object-fit:cover;
-  border-radius:7px;
+ width:34px;
+ height:34px;
+ object-fit:cover;
+ vertical-align:middle;
+ border-radius:7px;
+ margin-right:5px;
 }
-.gold,.price{color:#d9b85c}
+.gold,.price{color:var(--gold)}
 button{
-  border:0;
-  border-radius:8px;
-  padding:10px 14px;
-  background:var(--gold);
-  color:#101b2c;
-  font-weight:bold;
-  cursor:pointer;
+ border:0;
+ border-radius:8px;
+ padding:10px 13px;
+ background:#c5a64b;
+ color:#101b2c;
+ font-weight:bold;
+ cursor:pointer;
 }
-button:disabled{opacity:.5}
+button:disabled{opacity:.6;cursor:not-allowed}
 .secondary{
-  background:#172a45;
-  color:white;
-  border:1px solid #283c57;
+ background:#172a45;
+ color:white;
+ border:1px solid var(--border);
 }
 .menu-wrap{position:relative}
 .menu{
-  display:none;
-  position:absolute;
-  right:0;
-  top:43px;
-  background:var(--panel);
-  padding:12px;
-  border-radius:8px;
-  min-width:170px;
-  box-shadow:0 8px 20px #0005;
+ display:none;
+ position:absolute;
+ right:0;
+ top:42px;
+ background:var(--panel);
+ padding:14px;
+ border-radius:8px;
+ min-width:175px;
+ box-shadow:0 8px 25px #0005;
 }
-.menu.show{display:grid;gap:12px}
-.menu a,footer a{
-  color:var(--gold);
-  text-decoration:none;
+.menu.show{display:grid;gap:13px}
+a{color:var(--gold)}
+.menu a,footer a{text-decoration:none}
+main{padding:14px}
+.hero,.panel,.ad{
+ background:var(--panel);
+ border:1px solid var(--border);
+ border-radius:12px;
+ margin-bottom:14px;
 }
-main{
-  max-width:950px;
-  margin:auto;
-  padding:15px;
-}
-.hero,.panel{
-  background:var(--panel);
-  border:1px solid #283c57;
-  border-radius:12px;
-  padding:15px;
-  margin-bottom:15px;
-}
+.hero,.panel{padding:15px}
 .hero{text-align:center}
-.hero h1{margin:0 0 8px;font-size:28px}
+.hero h1{font-size:26px;margin:0 0 8px}
+.hero p{color:var(--muted)}
+.hero button{margin-top:5px}
 p,.muted,.status{color:var(--muted)}
-input,select,textarea{
-  width:100%;
-  padding:11px;
-  background:#0c192c;
-  color:white;
-  border:1px solid #283c57;
-  border-radius:8px;
+.status:empty{display:none}
+.filters{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:10px;
 }
-input[type=checkbox]{width:auto}
 label{
-  display:block;
-  color:var(--muted);
-  margin:10px 0 5px;
+ display:block;
+ color:var(--muted);
+ margin:10px 0 5px;
 }
-.filters,.formgrid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
+input,select,textarea{
+ width:100%;
+ min-width:0;
+ padding:11px;
+ background:#0c192c;
+ color:white;
+ border:1px solid var(--border);
+ border-radius:8px;
 }
 .grid{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:12px;
-  margin-bottom:15px;
+ display:grid;
+ grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:12px;
 }
 .ad{
-  background:var(--panel);
-  border:1px solid #283c57;
-  border-radius:10px;
-  overflow:hidden;
-  min-width:0;
+ overflow:hidden;
+ min-width:0;
+ margin:0;
 }
 .ad img{
-  width:100%;
-  height:150px;
-  object-fit:cover;
+ display:block;
+ width:100%;
+ aspect-ratio:4/3;
+ object-fit:cover;
 }
 .ad-content{
-  padding:10px;
-  overflow-wrap:anywhere;
+ padding:10px;
+ overflow-wrap:anywhere;
 }
+.ad-title{font-weight:bold;font-size:16px}
 .price{font-weight:bold}
-.ad a{color:var(--gold)}
+.details{
+ display:block;
+ color:var(--muted);
+ font-size:12px;
+}
+
+/* Contact buttons on each ad */
+.actions{
+ display:flex;
+ flex-direction:column;
+ gap:8px;
+ margin-top:12px;
+}
+.contact{
+ width:100%;
+ min-height:42px;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ border-radius:8px;
+ text-decoration:none;
+ font-weight:bold;
+}
+.call{background:var(--gold);color:#101b2c}
+.wa{background:#25D366;color:#082414}
+.wa svg{width:25px;height:25px;display:block}
+
+/* Home page posting popup */
+.popup{
+ display:none;
+ position:fixed;
+ inset:0;
+ z-index:1000;
+ background:rgba(0,0,0,.78);
+ align-items:center;
+ justify-content:center;
+ padding:18px;
+}
+.popup.show{display:flex}
+.popup-content{
+ position:relative;
+ width:100%;
+ max-width:420px;
+ max-height:90vh;
+ overflow-y:auto;
+ padding:24px;
+ border:1px solid var(--border);
+ border-radius:14px;
+ background:var(--panel);
+ text-align:center;
+ box-shadow:0 15px 50px #0008;
+}
+.popup-content h2{margin:5px 0 12px}
+.popup-content p{line-height:1.5}
+.close-popup{
+ position:absolute;
+ top:10px;
+ right:10px;
+ padding:7px 10px;
+ background:#172a45;
+ color:white;
+}
+.popup-login{
+ width:100%;
+ margin-top:10px;
+ background:white;
+ color:#202124;
+}
+.popup-message{
+ margin-top:12px;
+ overflow-wrap:anywhere;
+}
 .ad-banner{
-  background:white;
-  border-radius:8px;
-  padding:10px;
-  margin-bottom:15px;
-  overflow:hidden;
-  text-align:center;
-  min-height:80px;
-}
-.contact-actions{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  margin-top:12px;
-}
-.contact-btn{
-  display:inline-block;
-  padding:10px 12px;
-  border-radius:8px;
-  text-decoration:none;
-  text-align:center;
-  font-weight:bold;
-}
-.call-btn{
-  background:#c5a64b;
-  color:#101b2c!important;
-}
-.whatsapp-btn{
-  background:#25D366;
-  color:#fff!important;
+ background:#fff;
+ border-radius:8px;
+ padding:10px;
+ margin:14px 0;
+ min-height:80px;
+ overflow:hidden;
+ text-align:center;
 }
 footer{
-  text-align:center;
-  padding:20px;
-  color:var(--muted);
+ text-align:center;
+ padding:20px;
+ color:var(--muted);
 }
 [hidden]{display:none!important}
 
 @media(max-width:600px){
-  nav{gap:7px;padding:8px 10px}
-  .brand{font-size:15px;gap:6px}
-  .brand img{width:32px;height:32px}
-  nav button{padding:9px 10px}
-  .grid{grid-template-columns:1fr 1fr}
-  .filters,.formgrid{grid-template-columns:1fr}
-  .ad img{height:120px}
-  .hero h1{font-size:24px}
-  .contact-actions{gap:6px}
-  .contact-btn{padding:9px 10px;font-size:13px}
+ main{padding:10px}
+ .grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;
+ }
+ .filters{grid-template-columns:1fr}
+ .hero h1{font-size:23px}
+ .ad-content{padding:8px}
+}
+@media(max-width:340px){
+ .grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -201,720 +249,541 @@ footer{
 <header>
 <nav>
 <a class="brand" href="/">
-  <img
-    src="https://assets.createlk.com/apebazar/IMG-20261011-WA0001.jpg"
-    alt="ApeBazar logo">
-  <span>ApeBazar<span class="gold">.lk</span></span>
+<img src="https://assets.createlk.com/apebazar/IMG-20261011-WA0001.jpg" alt="">
+ApeBazar<span class="gold">.lk</span>
 </a>
 
-<button id="loginBtn" type="button">Sign in</button>
+<button id="loginBtn">Sign in</button>
 
 <img
-  id="avatar"
-  width="35"
-  height="35"
-  style="border-radius:50%;object-fit:cover"
-  hidden
-  alt="Profile">
+ id="avatar"
+ width="34"
+ height="34"
+ style="border-radius:50%;object-fit:cover"
+ hidden
+ alt="Profile"
+>
 
 <div class="menu-wrap">
-  <button class="secondary" id="menuBtn" type="button">☰</button>
-  <div class="menu" id="menu">
-    <a href="#browse">Browse Ads</a>
-    <a href="#post" id="menuPost">Post an Ad</a>
-    <a href="#recent">Recent Posts</a>
-    <a href="/Ape/terms.html">Terms & Conditions</a>
-    <a href="#" id="logout" hidden>Sign out</a>
-  </div>
+<button class="secondary" id="menuBtn" aria-label="Menu">☰</button>
+<div class="menu" id="menu">
+<a href="#browse">Browse Ads</a>
+<a href="#recent">Recent Posts</a>
+<a href="/Ape/terms.html">Terms & Conditions</a>
+<a href="#" id="logout" hidden>Sign out</a>
+</div>
 </div>
 </nav>
 </header>
 
 <main>
+
 <section class="hero">
-  <h1>Buy & Sell in <span class="gold">Sri Lanka</span></h1>
-  <p>Discover local deals. Post your ads for free.</p>
-  <button id="heroPost" type="button">＋ Post a free ad</button>
+<h1>Buy & Sell in <span class="gold">Sri Lanka</span></h1>
+<p>Discover local deals. Find what you need.</p>
+<button id="heroPost">＋ Post a Free Ad</button>
 </section>
 
 <section class="panel" id="browse">
-  <h3>Browse Ads</h3>
+<h3>Browse Ads</h3>
 
-  <div class="filters">
-    <div>
-      <label for="category">Category</label>
-      <select id="category">
-        <option value="">All categories</option>
-      </select>
-    </div>
+<div class="filters">
+<div>
+<label for="category">Category</label>
+<select id="category">
+<option value="">All categories</option>
+</select>
+</div>
 
-    <div>
-      <label for="district">District</label>
-      <select id="district">
-        <option value="">All districts</option>
-      </select>
-    </div>
+<div>
+<label for="district">District</label>
+<select id="district">
+<option value="">All districts</option>
+</select>
+</div>
 
-    <div>
-      <label for="q">Search</label>
-      <input id="q" placeholder="Search ads">
-    </div>
+<div>
+<label for="q">Search</label>
+<input id="q" placeholder="Search ads">
+</div>
 
-    <button id="searchBtn" type="button">Search</button>
-  </div>
+<button id="searchBtn">Search</button>
+</div>
 
-  <div id="browseStatus" class="status"></div>
+<div id="browseStatus" class="status" role="status"></div>
 </section>
 
-<!-- Adsterra Native Banner -->
 <div class="ad-banner">
-  <script
-    async="async"
-    data-cfasync="false"
-    src="https://pl31875155.profitableratecpmnetwork.com/30f905d14a580630063653aabeccc89e/invoke.js">
-  </script>
-  <div id="container-30f905d14a580630063653aabeccc89e"></div>
+<script async data-cfasync="false"
+src="https://pl31875155.profitableratecpmnetwork.com/30f905d14a580630063653aabeccc89e/invoke.js"></script>
+<div id="container-30f905d14a580630063653aabeccc89e"></div>
 </div>
 
 <div id="results" class="grid"></div>
 
-<div style="text-align:center;margin-bottom:20px">
-  <button id="more" class="secondary" hidden>Load more</button>
-</div>
-
-<section class="panel" id="post">
-  <h3>Post a Free Ad</h3>
-
-  <div id="signinNote">
-    Please sign in with Google before posting an ad.
-  </div>
-
-  <form id="adForm" hidden>
-    <div class="formgrid">
-      <div>
-        <label>Title *</label>
-        <input name="title" required maxlength="100">
-      </div>
-
-      <div>
-        <label>Price (LKR)</label>
-        <input name="price_lkr" type="number" min="0">
-      </div>
-
-      <div>
-        <label>Category *</label>
-        <select name="category_id" id="postCategory" required></select>
-      </div>
-
-      <div>
-        <label>District *</label>
-        <select name="district_id" id="postDistrict" required></select>
-      </div>
-
-      <div>
-        <label>City (optional)</label>
-        <select name="city_id" id="postCity">
-          <option value="">Select city</option>
-        </select>
-      </div>
-
-      <div>
-        <label>Condition</label>
-        <select name="condition">
-          <option>Used</option>
-          <option>New</option>
-          <option>Refurbished</option>
-        </select>
-      </div>
-
-      <div>
-        <label>Seller name *</label>
-        <input name="seller_name" required maxlength="100">
-      </div>
-
-      <div>
-        <label>Phone *</label>
-        <input
-          name="seller_phone"
-          type="tel"
-          required
-          maxlength="30"
-          placeholder="0771234567">
-      </div>
-
-      <div>
-        <label>Photos (maximum 5)</label>
-        <input
-          id="photos"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          multiple>
-      </div>
-    </div>
-
-    <label>Description *</label>
-    <textarea
-      name="description"
-      required
-      maxlength="2000"></textarea>
-
-    <label>
-      <input type="checkbox" name="agree" required>
-      I agree to <a href="/Ape/terms.html">Terms & Conditions</a>
-    </label>
-
-    <button id="submit" type="submit">Submit for approval</button>
-  </form>
-
-  <div id="postStatus" class="status"></div>
-</section>
+<p style="text-align:center">
+<button id="more" class="secondary" hidden>Load more</button>
+</p>
 
 <section id="recent">
-  <h3>Recent Posts</h3>
-  <div id="recentStatus" class="status">Loading ads...</div>
-  <div id="recentResults" class="grid"></div>
+<h3>Recent Posts</h3>
+<div id="recentStatus" class="status" role="status">Loading ads...</div>
+<div id="recentResults" class="grid"></div>
 
-  <div style="text-align:center;margin:15px">
-    <button id="moreRecent" class="secondary" hidden>
-      Load more
-    </button>
-  </div>
+<p style="text-align:center">
+<button id="moreRecent" class="secondary" hidden>Load more</button>
+</p>
 </section>
+
 </main>
 
-<footer>© <span id="year"></span> ApeBazar.lk</footer>
+<footer>
+© <span id="year"></span> ApeBazar.lk
+</footer>
+
+<!-- Post an Ad popup -->
+<div id="postPopup" class="popup" role="dialog"
+ aria-modal="true" aria-labelledby="popupTitle">
+ <div class="popup-content">
+  <button id="closePopup" class="close-popup"
+   aria-label="Close popup">✕</button>
+
+  <h2 id="popupTitle">Post a Free Ad</h2>
+  <p>Sign in with Google to continue posting your advertisement.</p>
+
+  <button id="popupLogin" class="popup-login">
+   🔐 Sign in with Google
+  </button>
+
+  <div id="popupMessage" class="popup-message status"
+   role="status"></div>
+ </div>
+</div>
 
 <script>
 "use strict";
 
-const API = "https://apebazar-public-api.createlk.workers.dev";
+const API="https://apebazar-public-api.createlk.workers.dev";
+const GOOGLE_CLIENT_ID="582157960266-mvlpmqne90d9q7ja5vuhi3g1aspvtp86.apps.googleusercontent.com";
+const $=id=>document.getElementById(id);
 
-const GOOGLE_CLIENT_ID =
-  "582157960266-mvlpmqne90d9q7ja5vuhi3g1aspvtp86.apps.googleusercontent.com";
+let token=sessionStorage.getItem("apebazar_token")||"";
+let user={};
+let offset=0;
+let roffset=0;
+let googleReady=false;
+let googleLoading=false;
 
-const $ = id => document.getElementById(id);
+$("year").textContent=new Date().getFullYear();
 
-let token = sessionStorage.getItem("apebazar_token") || "";
-let user = {};
-let offset = 0;
-let roffset = 0;
-let googleReady = false;
+async function api(path,options={}){
+ const headers=new Headers(options.headers||{});
 
-$("year").textContent = new Date().getFullYear();
+ if(token){
+  headers.set("Authorization","Bearer "+token);
+ }
 
-async function api(path, options = {}) {
-  const headers = new Headers(options.headers || {});
+ if(options.body&&!(options.body instanceof FormData)){
+  headers.set("Content-Type","application/json");
+  options={
+   ...options,
+   body:JSON.stringify(options.body)
+  };
+ }
 
-  if (token) {
-    headers.set("Authorization", "Bearer " + token);
+ const r=await fetch(API+path,{...options,headers});
+ const data=await r.json().catch(()=>({}));
+
+ if(!r.ok){
+  throw Error(data.error||data.message||"Request failed ("+r.status+")");
+ }
+
+ return data;
+}
+
+function msg(id,text){
+ $(id).textContent=text;
+}
+
+/* Header authentication display */
+function authUI(){
+ $("loginBtn").hidden=!!token;
+ $("avatar").hidden=!token||!user.picture;
+ $("logout").hidden=!token;
+
+ if(user.picture){
+  $("avatar").src=user.picture;
+ }
+}
+
+/* Google sign-in */
+function initGoogle(){
+ if(window.google?.accounts?.id&&!googleReady){
+  window.google.accounts.id.initialize({
+   client_id:GOOGLE_CLIENT_ID,
+   callback:googleCallback
+  });
+  googleReady=true;
+ }else if(!googleReady){
+  setTimeout(initGoogle,500);
+ }
+}
+
+function login(){
+ initGoogle();
+
+ if(!googleReady){
+  msg("popupMessage","Google sign-in is loading. Please try again.");
+  return;
+ }
+
+ google.accounts.id.prompt(n=>{
+  if(n.isNotDisplayed()||n.isSkippedMoment()){
+   msg("popupMessage","Google sign-in is unavailable. Please check your Google OAuth settings or try again.");
   }
+ });
+}
 
-  if (options.body && !(options.body instanceof FormData)) {
-    headers.set("Content-Type", "application/json");
-    options.body = JSON.stringify(options.body);
-  }
+async function googleCallback(response){
+ try{
+  msg("popupMessage","Signing in...");
 
-  const r = await fetch(API + path, {
-    ...options,
-    headers
+  const d=await api("/api/auth/google",{
+   method:"POST",
+   body:{credential:response.credential}
   });
 
-  const data = await r.json().catch(() => ({}));
-
-  if (!r.ok) {
-    throw Error(
-      data.error || data.message || "Request failed (" + r.status + ")"
-    );
+  if(!d.token){
+   throw Error("Login token missing from server.");
   }
 
-  return data;
-}
+  token=d.token;
+  sessionStorage.setItem("apebazar_token",token);
 
-function msg(id, message) {
-  $(id).textContent = message;
-}
+  const encoded=response.credential.split(".")[1]
+   .replace(/-/g,"+")
+   .replace(/_/g,"/");
 
-function authUI() {
-  $("loginBtn").hidden = !!token;
-  $("avatar").hidden = !token || !user.picture;
-  $("logout").hidden = !token;
-  $("signinNote").hidden = !!token;
-  $("adForm").hidden = !token;
-
-  if (user.picture) {
-    $("avatar").src = user.picture;
-  }
-}
-
-function initGoogle() {
-  if (!window.google?.accounts?.id) {
-    setTimeout(initGoogle, 300);
-    return;
-  }
-
-  google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: googleCallback
-  });
-
-  googleReady = true;
-}
-
-function login() {
-  if (!googleReady) {
-    msg("postStatus", "Google login is loading. Try again.");
-    initGoogle();
-    return;
-  }
-
-  google.accounts.id.prompt(n => {
-    if (n.isNotDisplayed() || n.isSkippedMoment()) {
-      msg(
-        "postStatus",
-        "Google sign-in unavailable. Check your Google OAuth settings or try again."
-      );
-    }
-  });
-}
-
-async function googleCallback(response) {
-  try {
-    msg("postStatus", "Signing in...");
-
-    const data = await api("/api/auth/google", {
-      method: "POST",
-      body: {
-        credential: response.credential
-      }
-    });
-
-    if (!data.token) {
-      throw Error("Login token missing from server.");
-    }
-
-    token = data.token;
-    sessionStorage.setItem("apebazar_token", token);
-
-    const payload = JSON.parse(
-      atob(
-        response.credential
-          .split(".")[1]
-          .replace(/-/g, "+")
-          .replace(/_/g, "/")
-      )
-    );
-
-    user = {
-      name: payload.name || "",
-      picture: payload.picture || ""
-    };
-
-    authUI();
-
-    $("adForm").elements.seller_name.value = user.name;
-
-    msg("postStatus", "Signed in successfully. You can post your ad.");
-
-  } catch (e) {
-    msg("postStatus", "Login failed: " + e.message);
-  }
-}
-
-function signout(e) {
-  e.preventDefault();
-
-  token = "";
-  user = {};
-
-  sessionStorage.removeItem("apebazar_token");
-
-  authUI();
-  msg("postStatus", "Signed out.");
-}
-
-function postFreeAd() {
-  if (!token) {
-    msg("postStatus", "Please sign in before posting.");
-    login();
-    return;
-  }
-
-  $("post").scrollIntoView({ behavior: "smooth" });
-}
-
-$("loginBtn").onclick = login;
-$("logout").onclick = signout;
-$("heroPost").onclick = postFreeAd;
-
-$("menuPost").onclick = e => {
-  e.preventDefault();
-  $("menu").classList.remove("show");
-  postFreeAd();
-};
-
-$("menuBtn").onclick = () => {
-  $("menu").classList.toggle("show");
-};
-
-document.addEventListener("click", e => {
-  if (!e.target.closest(".menu-wrap")) {
-    $("menu").classList.remove("show");
-  }
-});
-
-function fill(id, items, label) {
-  const s = $(id);
-  s.replaceChildren(new Option(label, ""));
-
-  if (!Array.isArray(items)) return;
-
-  items.forEach(x => {
-    if (x.id != null && x.name != null) {
-      s.add(new Option(x.name, x.id));
-    }
-  });
-}
-
-async function loadOptions() {
-  try {
-    const [c, d] = await Promise.all([
-      api("/api/categories"),
-      api("/api/locations")
-    ]);
-
-    const categories = c.categories || c.data || c;
-    const districts = d.districts || d.locations || d.data || d;
-
-    ["category", "postCategory"].forEach(id => {
-      fill(id, categories, "All categories");
-    });
-
-    ["district", "postDistrict"].forEach(id => {
-      fill(id, districts, "All districts");
-    });
-
-  } catch (e) {
-    msg("browseStatus", "Could not load options: " + e.message);
-  }
-}
-
-$("postDistrict").addEventListener("change", async () => {
-  const id = $("postDistrict").value;
-
-  $("postCity").replaceChildren(
-    new Option("Select city", "")
+  const p=JSON.parse(
+   atob(encoded+"=".repeat((4-encoded.length%4)%4))
   );
 
-  if (!id) return;
+  user={
+   name:p.name||"",
+   picture:p.picture||""
+  };
 
-  try {
-    const data = await api(
-      "/api/cities?district_id=" + encodeURIComponent(id)
-    );
+  authUI();
+  msg("popupMessage","Signed in successfully.");
 
-    const cities = Array.isArray(data)
-      ? data
-      : data.cities || data.data || [];
-
-    cities.forEach(c => {
-      $("postCity").add(new Option(c.name, c.id));
-    });
-
-  } catch (e) {
-    msg("postStatus", "Could not load cities: " + e.message);
-  }
-});
-
-function arrayOf(data) {
-  if (Array.isArray(data)) return data;
-
-  for (const key of ["listings", "ads", "results", "data", "items"]) {
-    if (Array.isArray(data[key])) return data[key];
-  }
-
-  return [];
+ }catch(e){
+  msg("popupMessage","Login failed: "+e.message);
+ }
 }
 
-// Convert Sri Lankan phone numbers to WhatsApp international format.
-function whatsappNumber(value) {
-  let digits = String(value || "").replace(/\D/g, "");
+function signout(e){
+ e.preventDefault();
 
-  if (digits.startsWith("00")) {
-    digits = digits.slice(2);
-  }
+ token="";
+ user={};
 
-  if (digits.startsWith("94")) {
-    return digits;
-  }
-
-  if (digits.startsWith("0")) {
-    return "94" + digits.slice(1);
-  }
-
-  if (digits.length === 9) {
-    return "94" + digits;
-  }
-
-  return digits;
+ sessionStorage.removeItem("apebazar_token");
+ authUI();
 }
 
-function makeCard(ad) {
-  const card = document.createElement("article");
-  card.className = "ad";
-
-  const image = ad.image_url || ad.photo_url || "";
-
-  if (image) {
-    const img = document.createElement("img");
-
-    img.src = image;
-    img.alt = ad.title || "Ad";
-    img.loading = "lazy";
-    img.onerror = () => img.remove();
-
-    card.append(img);
-  }
-
-  const box = document.createElement("div");
-  box.className = "ad-content";
-
-  const title = document.createElement("b");
-  title.textContent = ad.title || "Untitled ad";
-  box.append(title);
-
-  const price = document.createElement("p");
-  price.className = "price";
-
-  price.textContent =
-    ad.price_lkr == null || ad.price_lkr === ""
-      ? "Price not specified"
-      : Number(ad.price_lkr) === 0
-        ? "Free / Negotiable"
-        : "LKR " + Number(ad.price_lkr).toLocaleString();
-
-  box.append(price);
-
-  const desc = document.createElement("p");
-  desc.textContent = (ad.description || "").slice(0, 140);
-  box.append(desc);
-
-  const details = document.createElement("small");
-
-  details.textContent = [
-    ad.district || ad.district_name || "",
-    ad.city || ad.city_name || "",
-    ad.category || ad.category_name || ""
-  ].filter(Boolean).join(" · ");
-
-  box.append(details);
-
-  // Call and WhatsApp buttons.
-  if (ad.seller_phone) {
-    const rawPhone = String(ad.seller_phone).trim();
-    const telPhone = rawPhone.replace(/[^\d+]/g, "");
-    const waPhone = whatsappNumber(rawPhone);
-
-    const actions = document.createElement("div");
-    actions.className = "contact-actions";
-
-    const call = document.createElement("a");
-    call.className = "contact-btn call-btn";
-    call.href = "tel:" + telPhone;
-    call.textContent = "📞 Call";
-
-    const whatsapp = document.createElement("a");
-    whatsapp.className = "contact-btn whatsapp-btn";
-    whatsapp.href = "https://wa.me/" + encodeURIComponent(waPhone);
-    whatsapp.target = "_blank";
-    whatsapp.rel = "noopener noreferrer";
-    whatsapp.textContent = "WhatsApp";
-
-    actions.append(call, whatsapp);
-    box.append(actions);
-  }
-
-  card.append(box);
-
-  return card;
-}
-
-async function searchAds(more = false) {
-  if (!more) {
-    offset = 0;
-    $("results").replaceChildren();
-  }
-
-  try {
-    const p = new URLSearchParams();
-
-    if ($("q").value.trim()) {
-      p.set("search", $("q").value.trim());
-    }
-
-    if ($("category").value) {
-      p.set("category", $("category").value);
-    }
-
-    if ($("district").value) {
-      // Send the district ID, which the API also supports.
-      p.set("location", $("district").value);
-    }
-
-    const ads = arrayOf(
-      await api("/api/listings?" + p.toString())
-    );
-
-    const batch = ads.slice(offset, offset + 12);
-
-    batch.forEach(ad => {
-      $("results").append(makeCard(ad));
-    });
-
-    offset += batch.length;
-    $("more").hidden = offset >= ads.length;
-
-    msg(
-      "browseStatus",
-      ads.length ? ads.length + " ads found." : "No approved ads found."
-    );
-
-  } catch (e) {
-    msg("browseStatus", "Could not load ads: " + e.message);
-  }
-}
-
-$("searchBtn").onclick = () => searchAds();
-$("more").onclick = () => searchAds(true);
-
-$("q").addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    searchAds();
-  }
-});
-
-$("category").onchange = () => searchAds();
-$("district").onchange = () => searchAds();
-
-async function recent(more = false) {
-  if (!more) {
-    roffset = 0;
-    $("recentResults").replaceChildren();
-  }
-
-  try {
-    const ads = arrayOf(await api("/api/listings"));
-
-    const batch = ads.slice(roffset, roffset + 6);
-
-    batch.forEach(ad => {
-      $("recentResults").append(makeCard(ad));
-    });
-
-    roffset += batch.length;
-    $("moreRecent").hidden = roffset >= ads.length;
-
-    msg(
-      "recentStatus",
-      ads.length
-        ? "Recent ads loaded."
-        : "No approved ads available yet."
-    );
-
-  } catch (e) {
-    msg("recentStatus", "Could not load ads: " + e.message);
-  }
-}
-
-$("moreRecent").onclick = () => recent(true);
-
-$("adForm").onsubmit = async e => {
-  e.preventDefault();
-
-  if (!token) {
-    login();
-    return;
-  }
-
-  const form = e.target;
-  const button = $("submit");
-
-  button.disabled = true;
-
-  try {
-    const files = [...$("photos").files];
-
-    if (files.length > 5) {
-      throw Error("Maximum 5 photos allowed.");
-    }
-
-    const photos = [];
-
-    for (const f of files) {
-      if (f.size > 5 * 1024 * 1024) {
-        throw Error("Each photo must be under 5 MB.");
-      }
-
-      if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) {
-        throw Error("Use JPG, PNG or WebP.");
-      }
-
-      const fd = new FormData();
-      fd.append("file", f);
-
-      const uploaded = await api("/api/upload", {
-        method: "POST",
-        body: fd
-      });
-
-      if (uploaded.key) {
-        photos.push(uploaded.key);
-      }
-    }
-
-    const data = Object.fromEntries(
-      new FormData(form).entries()
-    );
-
-    data.price_lkr =
-      data.price_lkr === "" ? null : Number(data.price_lkr);
-
-    data.city_id = data.city_id
-      ? Number(data.city_id)
-      : null;
-
-    data.category_id = Number(data.category_id);
-    data.district_id = Number(data.district_id);
-    data.photos = photos;
-
-    delete data.agree;
-
-    const result = await api("/api/ads", {
-      method: "POST",
-      body: data
-    });
-
-    form.reset();
-
-    msg(
-      "postStatus",
-      result.message || "Ad submitted for approval."
-    );
-
-    recent();
-
-  } catch (e) {
-    msg("postStatus", "Submission failed: " + e.message);
-  } finally {
-    button.disabled = false;
-  }
+$("loginBtn").onclick=()=>{
+ msg("popupMessage","");
+ login();
 };
 
+$("logout").onclick=signout;
+
+/* Popup controls */
+const popup=$("postPopup");
+
+function openPopup(){
+ popup.classList.add("show");
+ document.body.classList.add("popup-open");
+ msg("popupMessage","");
+
+ if(token){
+  msg("popupMessage","You are signed in. To publish an advertisement, a posting form and submission endpoint must be connected.");
+ }
+}
+
+function closePopup(){
+ popup.classList.remove("show");
+ document.body.classList.remove("popup-open");
+}
+
+$("heroPost").onclick=openPopup;
+$("closePopup").onclick=closePopup;
+
+popup.addEventListener("click",e=>{
+ if(e.target===popup){
+  closePopup();
+ }
+});
+
+$("popupLogin").onclick=()=>{
+ if(token){
+  msg("popupMessage","You are already signed in. The advertisement submission form is not included in this version.");
+  return;
+ }
+ login();
+};
+
+document.addEventListener("keydown",e=>{
+ if(e.key==="Escape"&&popup.classList.contains("show")){
+  closePopup();
+ }
+});
+
+/* Menu */
+$("menuBtn").onclick=()=>
+ $("menu").classList.toggle("show");
+
+document.addEventListener("click",e=>{
+ if(!e.target.closest(".menu-wrap")){
+  $("menu").classList.remove("show");
+ }
+});
+
+/* Load category and district options */
+function fill(id,items,label){
+ const s=$(id);
+ s.replaceChildren(new Option(label,""));
+
+ if(Array.isArray(items)){
+  items.forEach(x=>{
+   if(x.id!=null&&x.name!=null){
+    s.add(new Option(x.name,x.id));
+   }
+  });
+ }
+}
+
+async function loadOptions(){
+ try{
+  const [c,d]=await Promise.all([
+   api("/api/categories"),
+   api("/api/locations")
+  ]);
+
+  const cats=c.categories||c.data||c;
+  const dists=d.districts||d.locations||d.data||d;
+
+  fill("category",cats,"All categories");
+  fill("district",dists,"All districts");
+
+ }catch(e){
+  msg("browseStatus","Could not load options: "+e.message);
+ }
+}
+
+/* Handle API listing response formats */
+function arrayOf(d){
+ if(Array.isArray(d))return d;
+
+ for(const k of ["listings","ads","results","data","items"]){
+  if(Array.isArray(d[k]))return d[k];
+ }
+
+ return [];
+}
+
+/* Sri Lankan WhatsApp phone number formatting */
+function whatsappNumber(v){
+ let n=String(v||"").replace(/\D/g,"");
+
+ if(n.startsWith("00"))n=n.slice(2);
+ if(n.startsWith("94"))return n;
+ if(n.startsWith("0"))return "94"+n.slice(1);
+ if(n.length===9)return "94"+n;
+
+ return n;
+}
+
+/* Advertisement card */
+function makeCard(ad){
+ const card=document.createElement("article");
+ card.className="ad";
+
+ const image=ad.image_url||ad.photo_url||"";
+
+ if(image){
+  const img=document.createElement("img");
+  img.src=image;
+  img.alt=ad.title||"Ad";
+  img.loading="lazy";
+  img.onerror=()=>img.remove();
+  card.append(img);
+ }
+
+ const box=document.createElement("div");
+ box.className="ad-content";
+
+ const title=document.createElement("b");
+ title.className="ad-title";
+ title.textContent=ad.title||"Untitled ad";
+ box.append(title);
+
+ const price=document.createElement("p");
+ price.className="price";
+
+ price.textContent=
+  ad.price_lkr==null||ad.price_lkr===""
+   ?"Price not specified"
+   :Number(ad.price_lkr)===0
+    ?"Free / Negotiable"
+    :"LKR "+Number(ad.price_lkr).toLocaleString("en-LK");
+
+ box.append(price);
+
+ if(ad.description){
+  const desc=document.createElement("p");
+  desc.textContent=String(ad.description).slice(0,140);
+  box.append(desc);
+ }
+
+ const detail=document.createElement("small");
+ detail.className="details";
+ detail.textContent=[
+  ad.district||ad.district_name||"",
+  ad.city||ad.city_name||"",
+  ad.category||ad.category_name||""
+ ].filter(Boolean).join(" · ");
+
+ if(detail.textContent){
+  box.append(detail);
+ }
+
+ if(ad.seller_phone){
+  const raw=String(ad.seller_phone).trim();
+
+  const actions=document.createElement("div");
+  actions.className="actions";
+
+  /* Call button on the first line */
+  const call=document.createElement("a");
+  call.className="contact call";
+  call.href="tel:"+raw.replace(/[^\d+]/g,"");
+  call.textContent="📞 Call";
+
+  /* WhatsApp button on the second line */
+  const wa=document.createElement("a");
+  wa.className="contact wa";
+  wa.href="https://wa.me/"+encodeURIComponent(whatsappNumber(raw));
+  wa.target="_blank";
+  wa.rel="noopener noreferrer";
+  wa.setAttribute("aria-label","Contact seller on WhatsApp");
+  wa.title="WhatsApp";
+
+  wa.innerHTML=`
+   <svg viewBox="0 0 32 32" aria-hidden="true">
+    <path fill="#fff" d="M16 .8A15.1 15.1 0 0 0 3.05 23.65L1 31l7.55-1.98A15.2 15.2 0 1 0 16 .8Zm0 27.6c-2.3 0-4.55-.62-6.5-1.8l-.47-.28-4.48 1.17 1.2-4.36-.3-.48A12.5 12.5 0 1 1 16 28.4Zm6.85-9.36c-.38-.19-2.22-1.1-2.57-1.22-.35-.13-.6-.19-.85.19-.25.37-.98 1.22-1.2 1.47-.22.25-.44.28-.82.09-.38-.19-1.6-.59-3.04-1.88-1.12-1-1.88-2.23-2.1-2.61-.22-.37-.02-.58.17-.76.17-.17.38-.44.57-.66.19-.22.25-.38.38-.63.13-.25.06-.47-.03-.66-.1-.19-.85-2.05-1.16-2.81-.3-.73-.61-.63-.85-.64h-.73c-.25 0-.66.1-1 .47-.35.38-1.32 1.29-1.32 3.15s1.35 3.66 1.54 3.91c.19.25 2.66 4.06 6.45 5.69.9.39 1.6.62 2.15.79.9.29 1.72.25 2.37.15.72-.11 2.22-.91 2.54-1.79.31-.88.31-1.63.22-1.79-.1-.16-.35-.25-.73-.44Z"/>
+   </svg>`;
+
+  actions.append(call,wa);
+  box.append(actions);
+ }
+
+ card.append(box);
+ return card;
+}
+
+/* Search and browse ads */
+async function searchAds(more=false){
+ if(!more){
+  offset=0;
+  $("results").replaceChildren();
+ }
+
+ try{
+  const p=new URLSearchParams();
+
+  if($("q").value.trim()){
+   p.set("search",$("q").value.trim());
+  }
+
+  if($("category").value){
+   p.set("category",$("category").value);
+  }
+
+  if($("district").value){
+   p.set("location",$("district").value);
+  }
+
+  const ads=arrayOf(
+   await api("/api/listings?"+p.toString())
+  );
+
+  ads.slice(offset,offset+12).forEach(a=>{
+   $("results").append(makeCard(a));
+  });
+
+  offset+=Math.min(12,Math.max(0,ads.length-offset));
+  $("more").hidden=offset>=ads.length;
+
+  msg(
+   "browseStatus",
+   ads.length?ads.length+" ads found.":"No approved ads found."
+  );
+
+ }catch(e){
+  msg("browseStatus","Could not load ads: "+e.message);
+ }
+}
+
+$("searchBtn").onclick=()=>searchAds();
+$("more").onclick=()=>searchAds(true);
+
+$("q").onkeydown=e=>{
+ if(e.key==="Enter"){
+  e.preventDefault();
+  searchAds();
+ }
+};
+
+$("category").onchange=()=>searchAds();
+$("district").onchange=()=>searchAds();
+
+/* Recent ads */
+async function recent(more=false){
+ if(!more){
+  roffset=0;
+  $("recentResults").replaceChildren();
+ }
+
+ try{
+  const ads=arrayOf(await api("/api/listings"));
+
+  ads.slice(roffset,roffset+6).forEach(a=>{
+   $("recentResults").append(makeCard(a));
+  });
+
+  roffset+=Math.min(6,Math.max(0,ads.length-roffset));
+  $("moreRecent").hidden=roffset>=ads.length;
+
+  msg(
+   "recentStatus",
+   ads.length?"":"No approved ads available yet."
+  );
+
+ }catch(e){
+  msg("recentStatus","Could not load ads: "+e.message);
+ }
+}
+
+$("moreRecent").onclick=()=>recent(true);
+
+/* Start the website */
 authUI();
 initGoogle();
 loadOptions();
 searchAds();
 recent();
+
 </script>
 </body>
 </html>
