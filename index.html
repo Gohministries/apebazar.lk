@@ -2,110 +2,607 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1628">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1628">
 <title>ApeBazar.lk</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-:root{--bg:#0b1628;--p:#13233b;--g:#ffd166;--t:#f4f7fc;--m:#c1cee0;--b:#304561}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:15px Arial}body.lock{overflow:hidden}header{position:sticky;top:0;z-index:5;background:#0a1527;border-bottom:1px solid var(--b)}nav,main{max-width:950px;margin:auto}nav{display:flex;align-items:center;gap:7px;padding:7px}button{border:0;border-radius:5px;padding:9px 11px;background:var(--g);color:#101b2c;font-weight:bold;cursor:pointer}.secondary{background:#172a45;color:white;border:1px solid var(--b)}.brand{display:flex;align-items:center;gap:6px;margin-right:auto;color:white;text-decoration:none;font-weight:bold;font-size:19px}.brand img{width:30px;height:30px;object-fit:cover;border-radius:5px}.gold,.price{color:var(--g)}.menu-wrap{position:relative}.menu{display:none;position:absolute;right:0;top:38px;background:var(--p);padding:12px;min-width:165px;border-radius:6px}.menu.show{display:grid;gap:12px}.menu a{color:var(--g);text-decoration:none}main{padding:5px}.hero,.panel,.ad{background:var(--p);border:1px solid var(--b);border-radius:7px;margin-bottom:6px}.hero,.panel{padding:10px}.hero{text-align:center}.hero h1{font-size:23px;margin:0}.hero p{color:var(--m);margin:6px 0 10px}.panel h3,#recent h3{margin:0 0 8px;font-size:18px}input,select,textarea{width:100%;padding:9px;background:#0c192c;color:white;border:1px solid var(--b);border-radius:5px;font:15px Arial}label{display:block;color:var(--m);font-size:13px;margin:8px 0 4px}.search{display:flex;gap:5px;margin-bottom:6px}.search input{flex:1;min-width:0}.filters{display:grid;grid-template-columns:1fr 1fr;gap:6px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.ad{overflow:hidden;text-align:center;margin:0}.ad img{width:100%;aspect-ratio:1;object-fit:cover;display:block}.content{padding:8px;overflow-wrap:anywhere}.title{display:block;font-size:16px}.view{width:100%;margin-top:6px}.ad-banner{background:white;overflow:hidden;text-align:center;border-radius:5px;margin:5px 0}.status{color:var(--m);font-size:13px;margin:6px 0}.popup{display:none;position:fixed;inset:0;z-index:10;background:#000c;align-items:center;justify-content:center;padding:8px}.popup.show{display:flex}.box{position:relative;width:100%;max-width:440px;max-height:92vh;overflow:auto;background:var(--p);border:1px solid var(--b);border-radius:8px;padding:14px}.box h2{text-align:center;margin:0 25px 10px;font-size:20px}.close{position:absolute;right:5px;top:5px;background:#172a45;color:white}.detail-img{width:100%;max-height:320px;object-fit:contain}.detail-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}.actions{display:flex;gap:6px;margin:8px 0}.contact{flex:1;text-align:center;padding:10px 5px;border-radius:5px;text-decoration:none;font-weight:bold;color:#101b2c}.call{background:var(--g)}.wa{background:#25d366;color:#082414}footer{text-align:center;padding:10px;color:var(--m);font-size:12px}[hidden]{display:none!important}@media(min-width:600px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:350px){.brand{font-size:16px}.filters,.grid{grid-template-columns:1fr}}
+:root{--bg:#0b1628;--p:#13233b;--g:#ffd166;--t:#f4f7fc;--m:#c1cee0;--b:#304561}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--t);font:15px Arial}
+body.lock{overflow:hidden}
+header{position:sticky;top:0;z-index:5;background:#0a1527;border-bottom:1px solid var(--b)}
+nav,main{max-width:950px;margin:auto}
+nav{display:flex;align-items:center;gap:7px;padding:7px}
+button{border:0;border-radius:5px;padding:9px 11px;background:var(--g);color:#101b2c;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}
+.secondary{background:#172a45;color:white;border:1px solid var(--b)}
+.brand{display:flex;align-items:center;gap:6px;margin-right:auto;color:white;text-decoration:none;font-weight:bold;font-size:19px}
+.brand img{width:30px;height:30px;object-fit:cover;border-radius:5px}
+.gold,.price{color:var(--g)}
+.menu-wrap{position:relative}
+.menu{display:none;position:absolute;right:0;top:38px;background:var(--p);padding:12px;min-width:165px;border-radius:6px}
+.menu.show{display:grid;gap:12px}
+.menu a{color:var(--g);text-decoration:none}
+main{padding:5px}
+.hero,.panel,.ad{background:var(--p);border:1px solid var(--b);border-radius:7px;margin-bottom:6px}
+.hero,.panel{padding:10px}
+.hero{text-align:center}
+.hero h1{font-size:23px;margin:0}
+.hero p{color:var(--m);margin:6px 0 10px}
+.panel h3,#recent h3{margin:0 0 8px;font-size:18px}
+input,select,textarea{width:100%;padding:9px;background:#0c192c;color:white;border:1px solid var(--b);border-radius:5px;font:15px Arial}
+label{display:block;color:var(--m);font-size:13px;margin:8px 0 4px}
+.search{display:flex;gap:5px;margin-bottom:6px}
+.search input{flex:1;min-width:0}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.ad{overflow:hidden;text-align:center;margin:0}
+.ad img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.content{padding:8px;overflow-wrap:anywhere}
+.title{display:block;font-size:16px}
+.view{width:100%;margin-top:6px}
+.ad-banner{background:white;overflow:hidden;text-align:center;border-radius:5px;margin:5px 0}
+.status{color:var(--m);font-size:13px;margin:6px 0}
+.popup{display:none;position:fixed;inset:0;z-index:10;background:#000c;align-items:center;justify-content:center;padding:8px}
+.popup.show{display:flex}
+.box{position:relative;width:100%;max-width:440px;max-height:92vh;overflow:auto;background:var(--p);border:1px solid var(--b);border-radius:8px;padding:14px}
+.box h2{text-align:center;margin:0 25px 10px;font-size:20px}
+.close{position:absolute;right:5px;top:5px;background:#172a45;color:white}
+.detail-img{width:100%;max-height:320px;object-fit:contain}
+.detail-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
+.actions{display:flex;gap:6px;margin:8px 0}
+.contact{flex:1;text-align:center;padding:10px 5px;border-radius:5px;text-decoration:none;font-weight:bold;color:#101b2c}
+.call{background:var(--g)}
+.wa{background:#25d366;color:#082414}
+footer{text-align:center;padding:10px;color:var(--m);font-size:12px}
+[hidden]{display:none!important}
+@media(min-width:600px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:350px){.brand{font-size:16px}.filters,.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header><nav>
-<a class="brand" href="/"><img src="https://assets.createlk.com/apebazar/IMG-20261011-WA0001.jpg" alt="ApeBazar"><span>ApeBazar<span class="gold">.lk</span></span></a>
-<button id="login">Sign in</button><img id="avatar" width="30" height="30" style="border-radius:50%;object-fit:cover" hidden alt="Profile">
-<div class="menu-wrap"><button class="secondary" id="menuBtn">☰</button><div class="menu" id="menu"><a href="#browse">Browse Ads</a><a href="#recent">Recent Posts</a><a href="/Ape/terms.html">Terms & Conditions</a><a href="#" id="logout" hidden>Sign out</a></div></div>
-</nav></header>
+<header>
+<nav>
+<a class="brand" href="/">
+<img src="https://assets.createlk.com/apebazar/IMG-20261011-WA0001.jpg" alt="ApeBazar">
+<span>ApeBazar<span class="gold">.lk</span></span>
+</a>
+<button id="login">Sign in</button>
+<img id="avatar" width="30" height="30" style="border-radius:50%;object-fit:cover" hidden alt="Profile">
+<div class="menu-wrap">
+<button class="secondary" id="menuBtn">☰</button>
+<div class="menu" id="menu">
+<a href="#browse">Browse Ads</a>
+<a href="#recent">Recent Posts</a>
+<a href="/Ape/terms.html">Terms & Conditions</a>
+<a href="#" id="logout" hidden>Sign out</a>
+</div>
+</div>
+</nav>
+</header>
+
 <main>
-<section class="hero"><h1>Buy & Sell in <span class="gold">Sri Lanka</span></h1><p>Discover local deals. Find what you need.</p><button id="postBtn">＋ Post a Free Ad</button></section>
-<section class="panel" id="browse"><h3>Browse Ads</h3><form id="searchForm" class="search"><input id="q" type="search" placeholder="Search products, vehicles, phones..."><button>Search</button></form><div class="filters"><select id="category"><option value="">All categories</option></select><select id="district"><option value="">All districts</option></select></div><div id="browseStatus" class="status"></div></section>
-<div class="ad-banner"><script async data-cfasync="false" src="https://pl31875155.profitableratecpmnetwork.com/30f905d14a580630063653aabeccc89e/invoke.js"></script><div id="container-30f905d14a580630063653aabeccc89e"></div></div>
-<div id="results" class="grid"></div><p style="text-align:center"><button id="more" class="secondary" hidden>Load more</button></p>
-<section id="recent"><h3>Recent Posts</h3><div id="recentStatus" class="status">Loading ads...</div><div id="recentResults" class="grid"></div><p style="text-align:center"><button id="moreRecent" class="secondary" hidden>Load more</button></p></section>
+<section class="hero">
+<h1>Buy & Sell in <span class="gold">Sri Lanka</span></h1>
+<p>Discover local deals. Find what you need.</p>
+<button id="postBtn">＋ Post a Free Ad</button>
+</section>
+
+<section class="panel" id="browse">
+<h3>Browse Ads</h3>
+<form id="searchForm" class="search">
+<input id="q" type="search" placeholder="Search products, vehicles, phones...">
+<button>Search</button>
+</form>
+<div class="filters">
+<select id="category"><option value="">All categories</option></select>
+<select id="district"><option value="">All districts</option></select>
+</div>
+<div id="browseStatus" class="status"></div>
+</section>
+
+<div class="ad-banner">
+<script async data-cfasync="false" src="https://pl31875155.profitableratecpmnetwork.com/30f905d14a580630063653aabeccc89e/invoke.js"></script>
+<div id="container-30f905d14a580630063653aabeccc89e"></div>
+</div>
+
+<div id="results" class="grid"></div>
+<p style="text-align:center"><button id="more" class="secondary" hidden>Load more</button></p>
+
+<section id="recent">
+<h3>Recent Posts</h3>
+<div id="recentStatus" class="status">Loading ads...</div>
+<div id="recentResults" class="grid"></div>
+<p style="text-align:center"><button id="moreRecent" class="secondary" hidden>Load more</button></p>
+</section>
 </main>
+
 <footer>© <span id="year"></span> ApeBazar.lk</footer>
 
-<div id="postPopup" class="popup" role="dialog" aria-modal="true"><div class="box"><button class="close" id="closePost">✕</button><h2>Post a Free Ad</h2><div id="loginPanel"><p style="text-align:center">Sign in with Google to post your free ad.</p><div id="googleButton" style="display:flex;justify-content:center"></div></div>
-<form id="adForm" hidden>
-<label>Ad type *</label><select id="type" required><option value="product">Product for Sale</option><option value="service">Service / Business</option><option value="job">Job Vacancy</option><option value="website">Website Promotion</option><option value="other">Others</option></select>
-<label>Ad title *</label><input id="title" maxlength="120" required placeholder="Enter ad title">
-<label>Photos * (up to 5, 5 MB each)</label><input id="photos" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple required>
-<label>Description</label><textarea id="description" rows="3" maxlength="5000" placeholder="Optional description"></textarea>
-<div id="priceGroup"><label>Price (LKR)</label><input id="price" type="number" min="0" step="1" placeholder="Optional"></div>
-<div id="salaryGroup" hidden><label>Salary (LKR)</label><input id="salary" type="number" min="0" step="1" placeholder="Optional salary"></div>
-<label>Website link</label><input id="website" type="url" placeholder="https://example.com (optional)">
-<label>Category</label><select id="adCategory"><option value="">Choose category (optional)</option></select>
-<label>District</label><select id="adDistrict"><option value="">Choose district (optional)</option></select>
-<label>City</label><select id="city"><option value="">Choose city (optional)</option></select>
-<label>Condition</label><select id="condition"><option value="">Not specified</option><option>Used</option><option>New</option></select>
-<label>Your name</label><input id="seller" maxlength="100" placeholder="Optional">
-<label>Phone number</label><input id="phone" type="tel" maxlength="20" placeholder="Optional">
-<button id="submit" style="width:100%;margin-top:10px">Submit Free Ad</button>
-</form><div id="postMsg" class="status"></div></div></div>
+<div id="postPopup" class="popup" role="dialog" aria-modal="true">
+<div class="box">
+<button class="close" id="closePost">✕</button>
+<h2>Post a Free Ad</h2>
+<div id="loginPanel">
+<p style="text-align:center">Sign in with Google to post your free ad.</p>
+<div id="googleButton" style="display:flex;justify-content:center"></div>
+</div>
 
-<div id="detailPopup" class="popup" role="dialog" aria-modal="true"><div class="box"><button class="close" id="closeDetail">✕</button><h2 id="detailTitle">Ad Details</h2><div id="detailBody"></div></div></div>
+<form id="adForm" hidden>
+<label>Ad type *</label>
+<select id="type" required>
+<option value="product">Product for Sale</option>
+<option value="service">Service / Business</option>
+<option value="job">Job Vacancy</option>
+<option value="website">Website Promotion</option>
+<option value="other">Others</option>
+</select>
+
+<label>Ad title *</label>
+<input id="title" maxlength="120" required placeholder="Enter ad title">
+
+<label>Photos * (up to 5, 5 MB each)</label>
+<input id="photos" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple required>
+
+<label>Description</label>
+<textarea id="description" rows="3" maxlength="5000" placeholder="Optional description"></textarea>
+
+<div id="priceGroup">
+<label>Price (LKR)</label>
+<input id="price" type="number" min="0" step="1" placeholder="Optional">
+</div>
+
+<div id="salaryGroup" hidden>
+<label>Salary (LKR)</label>
+<input id="salary" type="number" min="0" step="1" placeholder="Optional salary">
+</div>
+
+<div id="websiteGroup">
+<label>Website link</label>
+<input id="website" type="url" placeholder="https://example.com (optional)">
+</div>
+
+<label>Category</label>
+<select id="adCategory"><option value="">Choose category (optional)</option></select>
+
+<label>District</label>
+<select id="adDistrict"><option value="">Choose district (optional)</option></select>
+
+<label>City</label>
+<select id="city"><option value="">Choose city (optional)</option></select>
+
+<div id="conditionGroup">
+<label>Condition</label>
+<select id="condition">
+<option value="">Not specified</option>
+<option value="Used">Used</option>
+<option value="New">New</option>
+</select>
+</div>
+
+<label>Your name</label>
+<input id="seller" maxlength="100" placeholder="Optional">
+
+<label>Phone number</label>
+<input id="phone" type="tel" maxlength="20" placeholder="Optional">
+
+<button id="submit" style="width:100%;margin-top:10px">Submit Free Ad</button>
+</form>
+<div id="postMsg" class="status"></div>
+</div>
+</div>
+
+<div id="detailPopup" class="popup" role="dialog" aria-modal="true">
+<div class="box">
+<button class="close" id="closeDetail">✕</button>
+<h2 id="detailTitle">Ad Details</h2>
+<div id="detailBody"></div>
+</div>
+</div>
 
 <script>
 "use strict";
-const API="https://apebazar-public-api.createlk.workers.dev",CLIENT="582157960266-mvlpmqne90d9q7ja5vuhi3g1aspvtp86.apps.googleusercontent.com",$=id=>document.getElementById(id);
-let token=sessionStorage.getItem("apebazar_token")||"",user={},googleReady=false,browseAds=[],recentAds=[],bo=0,ro=0,timer;
+const API="https://apebazar-public-api.createlk.workers.dev";
+const CLIENT="582157960266-mvlpmqne90d9q7ja5vuhi3g1aspvtp86.apps.googleusercontent.com";
+const $=id=>document.getElementById(id);
+let token=sessionStorage.getItem("apebazar_token")||"",user={},googleReady=false;
+let browseAds=[],recentAds=[],bo=0,ro=0,timer;
+
 $("year").textContent=new Date().getFullYear();
+
 async function api(path,opt={}){
- const h=new Headers(opt.headers||{});if(token)h.set("Authorization","Bearer "+token);
- if(opt.body&&!(opt.body instanceof FormData)){h.set("Content-Type","application/json");opt={...opt,body:JSON.stringify(opt.body)}}
- const r=await fetch(API+path,{...opt,headers:h}),d=await r.json().catch(()=>({}));
- if(!r.ok)throw Error(d.error||d.message||"Request failed ("+r.status+")");return d;
+ const h=new Headers(opt.headers||{});
+ if(token)h.set("Authorization","Bearer "+token);
+ if(opt.body&&!(opt.body instanceof FormData)){
+  h.set("Content-Type","application/json");
+  opt={...opt,body:JSON.stringify(opt.body)};
+ }
+ const r=await fetch(API+path,{...opt,headers:h});
+ const d=await r.json().catch(()=>({}));
+ if(!r.ok)throw Error(d.error||d.message||"Request failed ("+r.status+")");
+ return d;
 }
+
 function say(id,s){$(id).textContent=s}
-function rows(d){if(Array.isArray(d))return d;for(const k of ["listings","ads","results","data","items","categories","districts","locations","cities"])if(Array.isArray(d?.[k]))return d[k];return []}
-function fill(id,d,label){const s=$(id);s.replaceChildren(new Option(label,""));rows(d).forEach(x=>{if(x.id!=null&&x.name!=null)s.add(new Option(x.name,x.id))})}
-function authUI(){$("login").hidden=!!token;$("avatar").hidden=!token||!user.picture;$("logout").hidden=!token;$("loginPanel").hidden=!!token;$("adForm").hidden=!token;if(user.picture)$("avatar").src=user.picture}
-function initGoogle(){if(!window.google?.accounts?.id||googleReady)return;try{google.accounts.id.initialize({client_id:CLIENT,callback:googleCallback,auto_select:false});google.accounts.id.renderButton($("googleButton"),{theme:"outline",size:"large",text:"signin_with",width:260});googleReady=true}catch{say("postMsg","Google sign-in could not initialize.")}}
-function openPost(){$("postPopup").classList.add("show");document.body.classList.add("lock");authUI();initGoogle()}
-function closePop(){document.querySelectorAll(".popup").forEach(x=>x.classList.remove("show"));document.body.classList.remove("lock")}
-$("login").onclick=openPost;$("postBtn").onclick=()=>{openPost();if(!token)say("postMsg","Sign in with Google to post your ad.")};$("closePost").onclick=closePop;$("closeDetail").onclick=closePop;
-document.querySelectorAll(".popup").forEach(p=>p.onclick=e=>{if(e.target===p)closePop()});document.onkeydown=e=>{if(e.key==="Escape")closePop()};
-$("menuBtn").onclick=e=>{e.stopPropagation();$("menu").classList.toggle("show")};document.onclick=e=>{if(!e.target.closest(".menu-wrap"))$("menu").classList.remove("show")};
-$("logout").onclick=e=>{e.preventDefault();token="";user={};sessionStorage.removeItem("apebazar_token");authUI();say("postMsg","Signed out.")};
-async function googleCallback(r){try{say("postMsg","Signing in...");const d=await api("/api/auth/google",{method:"POST",body:{credential:r.credential}});if(!d.token)throw Error("Login token missing.");token=d.token;sessionStorage.setItem("apebazar_token",token);try{let p=r.credential.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");p+="=".repeat((4-p.length%4)%4);let j=JSON.parse(atob(p));user={name:j.name||"",picture:j.picture||""}}catch{user={}}authUI();say("postMsg","Signed in successfully.")}catch(e){say("postMsg","Sign-in failed: "+e.message)}}
-async function options(){try{const [c,d]=await Promise.all([api("/api/categories"),api("/api/locations")]);fill("category",c,"All categories");fill("district",d,"All districts");fill("adCategory",c,"Choose category (optional)");fill("adDistrict",d,"Choose district (optional)")}catch(e){say("browseStatus","Could not load categories: "+e.message)}}
-$("adDistrict").onchange=async()=>{fill("city",[],"Choose city (optional)");if(!$("adDistrict").value)return;try{fill("city",await api("/api/cities?district_id="+encodeURIComponent($("adDistrict").value)),"Choose city (optional)")}catch(e){say("postMsg","Could not load cities: "+e.message)}};
-$("type").onchange=()=>{const job=$("type").value==="job";$("priceGroup").hidden=job;$("salaryGroup").hidden=!job;$("price").value="";$("salary").value=""};
-function safeURL(v){try{const u=new URL(v);return ["https:","http:"].includes(u.protocol)?u.href:""}catch{return ""}}
-function wa(v){let n=String(v||"").replace(/\D/g,"");if(n.startsWith("00"))n=n.slice(2);if(n.startsWith("94"))return n;if(n.startsWith("0"))return "94"+n.slice(1);return n.length===9?"94"+n:n}
-function detail(ad){
- $("detailTitle").textContent=ad.title||"Ad Details";const b=$("detailBody");b.replaceChildren();
- const photo=ad.image_url||ad.photo_url||(Array.isArray(ad.photos)?ad.photos[0]:"");
- if(photo){const im=document.createElement("img");im.className="detail-img";im.src=photo;im.alt=ad.title||"Ad photo";b.append(im)}
- const add=(k,v)=>{if(v==null||v==="")return;const p=document.createElement("p");p.className="detail-text";const strong=document.createElement("b");strong.textContent=k+": ";p.append(strong,document.createTextNode(String(v)));b.append(p)};
- add("Type",({product:"Product for Sale",service:"Service / Business",job:"Job Vacancy",website:"Website Promotion",other:"Others"})[ad.ad_type]||ad.ad_type);
- if(ad.ad_type==="job")add("Salary",ad.salary_lkr==null?"":"LKR "+Number(ad.salary_lkr).toLocaleString("en-LK"));else if(ad.price_lkr!=null)add("Price","LKR "+Number(ad.price_lkr).toLocaleString("en-LK"));
- add("Description",ad.description);add("Category",ad.category||ad.category_name);add("District",ad.district||ad.district_name);add("City",ad.city||ad.city_name);add("Condition",ad.condition);add("Seller",ad.seller_name);
- if(ad.seller_phone){const a=document.createElement("div");a.className="actions";const c=document.createElement("a");c.className="contact call";c.href="tel:"+String(ad.seller_phone).replace(/[^\d+]/g,"");c.textContent="Call";const w=document.createElement("a");w.className="contact wa";w.href="https://wa.me/"+encodeURIComponent(wa(ad.seller_phone));w.target="_blank";w.rel="noopener noreferrer";w.textContent="WhatsApp";a.append(c,w);b.append(a)}
- const link=safeURL(ad.website_url);if(link){const a=document.createElement("a");a.href=link;a.target="_blank";a.rel="noopener noreferrer";a.className="contact call";a.style.display="block";a.textContent="Visit Website";b.append(a)}
- $("detailPopup").classList.add("show");document.body.classList.add("lock");
+
+function rows(d){
+ if(Array.isArray(d))return d;
+ for(const k of ["listings","ads","results","data","items","categories","districts","locations","cities"])
+  if(Array.isArray(d?.[k]))return d[k];
+ return [];
 }
-function card(ad){const c=document.createElement("article");c.className="ad";const photo=ad.image_url||ad.photo_url||(Array.isArray(ad.photos)?ad.photos[0]:"");if(photo){const im=document.createElement("img");im.src=photo;im.alt=ad.title||"Ad photo";im.loading="lazy";im.onerror=()=>im.remove();c.append(im)}const x=document.createElement("div");x.className="content";const t=document.createElement("b");t.className="title";t.textContent=ad.title||"Untitled ad";const v=document.createElement("button");v.className="view";v.textContent="View Post";v.onclick=()=>detail(ad);x.append(t,v);c.append(x);return c}
-function url(){const p=new URLSearchParams();if($("q").value.trim())p.set("search",$("q").value.trim());if($("category").value)p.set("category",$("category").value);if($("district").value)p.set("location",$("district").value);return "/api/listings"+(p.size?"?"+p:"")}
-$("searchForm").onsubmit=e=>{e.preventDefault();loadBrowse()};$("category").onchange=loadBrowse;$("district").onchange=loadBrowse;$("q").oninput=()=>{clearTimeout(timer);timer=setTimeout(loadBrowse,350)};
-async function loadBrowse(){try{browseAds=rows(await api(url()));bo=0;$("results").replaceChildren();renderBrowse()}catch(e){say("browseStatus","Could not load ads: "+e.message)}}
-function renderBrowse(){browseAds.slice(bo,bo+12).forEach(a=>$("results").append(card(a)));bo+=Math.min(12,browseAds.length-bo);$("more").hidden=bo>=browseAds.length;say("browseStatus",browseAds.length?browseAds.length+" ads found.":"No approved ads found.")}
-$("more").onclick=renderBrowse;
-async function loadRecent(){try{recentAds=rows(await api("/api/listings"));ro=0;$("recentResults").replaceChildren();renderRecent()}catch(e){say("recentStatus","Could not load recent ads: "+e.message)}}
-function renderRecent(){recentAds.slice(ro,ro+6).forEach(a=>$("recentResults").append(card(a)));ro+=Math.min(6,recentAds.length-ro);$("moreRecent").hidden=ro>=recentAds.length;say("recentStatus",recentAds.length?"":"No approved ads available yet.")}
-$("moreRecent").onclick=renderRecent;
-$("adForm").onsubmit=async e=>{
- e.preventDefault();if(!token)return say("postMsg","Please sign in first.");const btn=$("submit");btn.disabled=true;
+
+function fill(id,d,label){
+ const s=$(id);
+ s.replaceChildren(new Option(label,""));
+ rows(d).forEach(x=>{if(x.id!=null&&x.name!=null)s.add(new Option(x.name,x.id))});
+}
+
+function authUI(){
+ $("login").hidden=!!token;
+ $("avatar").hidden=!token||!user.picture;
+ $("logout").hidden=!token;
+ $("loginPanel").hidden=!!token;
+ $("adForm").hidden=!token;
+ if(user.picture)$("avatar").src=user.picture;
+}
+
+function initGoogle(){
+ if(!window.google?.accounts?.id||googleReady)return;
  try{
-  const files=[...$("photos").files];if(!files.length)throw Error("Upload at least one photo.");if(files.length>5)throw Error("Maximum 5 photos.");
-  for(const f of files){if(!["image/jpeg","image/png","image/webp","image/gif"].includes(f.type))throw Error("Use JPG, PNG, WEBP or GIF.");if(f.size>5*1024*1024)throw Error("Each photo must be 5 MB or less.")}
-  const photos=[];for(let i=0;i<files.length;i++){say("postMsg","Uploading photo "+(i+1)+" of "+files.length+"...");const f=new FormData();f.append("file",files[i]);const d=await api("/api/upload",{method:"POST",body:f});if(!d.key)throw Error("Photo upload failed.");photos.push(d.key)}
-  const type=$("type").value,p=$("price").value,s=$("salary").value,website=$("website").value.trim();
-  const data={title:$("title").value.trim(),ad_type:type,description:$("description").value.trim()||null,category_id:$("adCategory").value?Number($("adCategory").value):null,district_id:$("adDistrict").value?Number($("adDistrict").value):null,city_id:$("city").value?Number($("city").value):null,price_lkr:type==="job"||p===""?null:Number(p),salary_lkr:type==="job"&&s!==""?Number(s):null,website_url:website||null,condition:$("condition").value||null,seller_name:$("seller").value.trim()||null,seller_phone:$("phone").value.trim()||null,photos};
-  if(!data.title)throw Error("Ad title is required.");if(website&&!safeURL(website))throw Error("Use a valid http or https website link.");
-  say("postMsg","Submitting your ad...");const result=await api("/api/ads",{method:"POST",body:data});$("adForm").reset();$("type").value="product";$("type").onchange();fill("city",[],"Choose city (optional)");say("postMsg",result.message||"Your ad was submitted for approval.");await Promise.all([loadBrowse(),loadRecent()]);
- }catch(e){say("postMsg","Could not submit ad: "+e.message)}finally{btn.disabled=false}
+  google.accounts.id.initialize({client_id:CLIENT,callback:googleCallback,auto_select:false});
+  google.accounts.id.renderButton($("googleButton"),{theme:"outline",size:"large",text:"signin_with",width:260});
+  googleReady=true;
+ }catch{say("postMsg","Google sign-in could not initialize.")}
+}
+
+function openPost(){
+ $("postPopup").classList.add("show");
+ document.body.classList.add("lock");
+ authUI();
+ initGoogle();
+}
+
+function closePop(){
+ document.querySelectorAll(".popup").forEach(x=>x.classList.remove("show"));
+ document.body.classList.remove("lock");
+}
+
+$("login").onclick=openPost;
+$("postBtn").onclick=()=>{
+ openPost();
+ if(!token)say("postMsg","Sign in with Google to post your ad.");
 };
-authUI();if(window.google?.accounts?.id)initGoogle();else window.addEventListener("load",initGoogle);options();loadBrowse();loadRecent();
+$("closePost").onclick=closePop;
+$("closeDetail").onclick=closePop;
+
+document.querySelectorAll(".popup").forEach(p=>p.onclick=e=>{
+ if(e.target===p)closePop();
+});
+document.onkeydown=e=>{if(e.key==="Escape")closePop()};
+
+$("menuBtn").onclick=e=>{
+ e.stopPropagation();
+ $("menu").classList.toggle("show");
+};
+document.onclick=e=>{
+ if(!e.target.closest(".menu-wrap"))$("menu").classList.remove("show");
+};
+
+$("logout").onclick=e=>{
+ e.preventDefault();
+ token="";
+ user={};
+ sessionStorage.removeItem("apebazar_token");
+ authUI();
+ say("postMsg","Signed out.");
+};
+
+async function googleCallback(r){
+ try{
+  say("postMsg","Signing in...");
+  const d=await api("/api/auth/google",{method:"POST",body:{credential:r.credential}});
+  if(!d.token)throw Error("Login token missing.");
+  token=d.token;
+  sessionStorage.setItem("apebazar_token",token);
+  try{
+   let p=r.credential.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");
+   p+="=".repeat((4-p.length%4)%4);
+   let j=JSON.parse(atob(p));
+   user={name:j.name||"",picture:j.picture||""};
+  }catch{user={}}
+  authUI();
+  say("postMsg","Signed in successfully.");
+ }catch(e){say("postMsg","Sign-in failed: "+e.message)}
+}
+
+async function options(){
+ try{
+  const [c,d]=await Promise.all([api("/api/categories"),api("/api/locations")]);
+  fill("category",c,"All categories");
+  fill("district",d,"All districts");
+  fill("adCategory",c,"Choose category (optional)");
+  fill("adDistrict",d,"Choose district (optional)");
+ }catch(e){say("browseStatus","Could not load categories: "+e.message)}
+}
+
+$("adDistrict").onchange=async()=>{
+ fill("city",[],"Choose city (optional)");
+ if(!$("adDistrict").value)return;
+ try{
+  fill("city",await api("/api/cities?district_id="+encodeURIComponent($("adDistrict").value)),"Choose city (optional)");
+ }catch(e){say("postMsg","Could not load cities: "+e.message)}
+};
+
+function updateTypeFields(){
+ const type=$("type").value;
+ const job=type==="job";
+ const product=type==="product";
+
+ $("priceGroup").hidden=job;
+ $("salaryGroup").hidden=!job;
+ $("conditionGroup").hidden=!product;
+
+ // Website link is most useful for website promotion, but remains optional
+ // for other ad types as well.
+ $("websiteGroup").hidden=false;
+
+ $("price").value="";
+ $("salary").value="";
+ $("condition").value="";
+}
+
+$("type").onchange=updateTypeFields;
+updateTypeFields();
+
+function safeURL(v){
+ try{
+  const u=new URL(v);
+  return ["https:","http:"].includes(u.protocol)?u.href:"";
+ }catch{return ""}
+}
+
+function wa(v){
+ let n=String(v||"").replace(/\D/g,"");
+ if(n.startsWith("00"))n=n.slice(2);
+ if(n.startsWith("94"))return n;
+ if(n.startsWith("0"))return "94"+n.slice(1);
+ return n.length===9?"94"+n:n;
+}
+
+function detail(ad){
+ $("detailTitle").textContent=ad.title||"Ad Details";
+ const b=$("detailBody");
+ b.replaceChildren();
+
+ const photo=ad.image_url||ad.photo_url||(Array.isArray(ad.photos)?ad.photos[0]:"");
+ if(photo){
+  const im=document.createElement("img");
+  im.className="detail-img";
+  im.src=photo;
+  im.alt=ad.title||"Ad photo";
+  b.append(im);
+ }
+
+ const add=(k,v)=>{
+  if(v==null||v==="")return;
+  const p=document.createElement("p");
+  p.className="detail-text";
+  const strong=document.createElement("b");
+  strong.textContent=k+": ";
+  p.append(strong,document.createTextNode(String(v)));
+  b.append(p);
+ };
+
+ const typeNames={product:"Product for Sale",service:"Service / Business",job:"Job Vacancy",website:"Website Promotion",other:"Others"};
+ add("Type",typeNames[ad.ad_type]||ad.ad_type);
+
+ if(ad.ad_type==="job"){
+  if(ad.salary_lkr!=null)add("Salary","LKR "+Number(ad.salary_lkr).toLocaleString("en-LK"));
+ }else if(ad.price_lkr!=null){
+  add("Price","LKR "+Number(ad.price_lkr).toLocaleString("en-LK"));
+ }
+
+ add("Description",ad.description);
+ add("Category",ad.category||ad.category_name);
+ add("District",ad.district||ad.district_name);
+ add("City",ad.city||ad.city_name);
+
+ if(ad.ad_type==="product")add("Condition",ad.condition);
+
+ add("Seller",ad.seller_name);
+
+ if(ad.seller_phone){
+  const a=document.createElement("div");
+  a.className="actions";
+  const c=document.createElement("a");
+  c.className="contact call";
+  c.href="tel:"+String(ad.seller_phone).replace(/[^\d+]/g,"");
+  c.textContent="Call";
+  const w=document.createElement("a");
+  w.className="contact wa";
+  w.href="https://wa.me/"+encodeURIComponent(wa(ad.seller_phone));
+  w.target="_blank";
+  w.rel="noopener noreferrer";
+  w.textContent="WhatsApp";
+  a.append(c,w);
+  b.append(a);
+ }
+
+ const link=safeURL(ad.website_url);
+ if(link){
+  const a=document.createElement("a");
+  a.href=link;
+  a.target="_blank";
+  a.rel="noopener noreferrer";
+  a.className="contact call";
+  a.style.display="block";
+  a.textContent="Visit Website";
+  b.append(a);
+ }
+
+ $("detailPopup").classList.add("show");
+ document.body.classList.add("lock");
+}
+
+function card(ad){
+ const c=document.createElement("article");
+ c.className="ad";
+ const photo=ad.image_url||ad.photo_url||(Array.isArray(ad.photos)?ad.photos[0]:"");
+ if(photo){
+  const im=document.createElement("img");
+  im.src=photo;
+  im.alt=ad.title||"Ad photo";
+  im.loading="lazy";
+  im.onerror=()=>im.remove();
+  c.append(im);
+ }
+ const x=document.createElement("div");
+ x.className="content";
+ const t=document.createElement("b");
+ t.className="title";
+ t.textContent=ad.title||"Untitled ad";
+ const v=document.createElement("button");
+ v.className="view";
+ v.textContent="View Post";
+ v.onclick=()=>detail(ad);
+ x.append(t,v);
+ c.append(x);
+ return c;
+}
+
+function listingsURL(){
+ const p=new URLSearchParams();
+ if($("q").value.trim())p.set("search",$("q").value.trim());
+ if($("category").value)p.set("category",$("category").value);
+ if($("district").value)p.set("location",$("district").value);
+ return "/api/listings"+(p.size?"?"+p.toString():"");
+}
+
+$("searchForm").onsubmit=e=>{
+ e.preventDefault();
+ loadBrowse();
+};
+$("category").onchange=loadBrowse;
+$("district").onchange=loadBrowse;
+$("q").oninput=()=>{
+ clearTimeout(timer);
+ timer=setTimeout(loadBrowse,350);
+};
+
+async function loadBrowse(){
+ try{
+  browseAds=rows(await api(listingsURL()));
+  bo=0;
+  $("results").replaceChildren();
+  renderBrowse();
+ }catch(e){say("browseStatus","Could not load ads: "+e.message)}
+}
+
+function renderBrowse(){
+ browseAds.slice(bo,bo+12).forEach(a=>$("results").append(card(a)));
+ bo+=Math.min(12,browseAds.length-bo);
+ $("more").hidden=bo>=browseAds.length;
+ say("browseStatus",browseAds.length?browseAds.length+" ads found.":"No approved ads found.");
+}
+$("more").onclick=renderBrowse;
+
+async function loadRecent(){
+ try{
+  recentAds=rows(await api("/api/listings"));
+  ro=0;
+  $("recentResults").replaceChildren();
+  renderRecent();
+ }catch(e){say("recentStatus","Could not load recent ads: "+e.message)}
+}
+
+function renderRecent(){
+ recentAds.slice(ro,ro+6).forEach(a=>$("recentResults").append(card(a)));
+ ro+=Math.min(6,recentAds.length-ro);
+ $("moreRecent").hidden=ro>=recentAds.length;
+ say("recentStatus",recentAds.length?"":"No approved ads available yet.");
+}
+$("moreRecent").onclick=renderRecent;
+
+$("adForm").onsubmit=async e=>{
+ e.preventDefault();
+ if(!token)return say("postMsg","Please sign in first.");
+
+ const btn=$("submit");
+ btn.disabled=true;
+
+ try{
+  const files=[...$("photos").files];
+  if(!files.length)throw Error("Upload at least one photo.");
+  if(files.length>5)throw Error("Maximum 5 photos.");
+
+  for(const f of files){
+   if(!["image/jpeg","image/png","image/webp","image/gif"].includes(f.type))
+    throw Error("Use JPG, PNG, WEBP or GIF.");
+   if(f.size>5*1024*1024)throw Error("Each photo must be 5 MB or less.");
+  }
+
+  const photos=[];
+  for(let i=0;i<files.length;i++){
+   say("postMsg","Uploading photo "+(i+1)+" of "+files.length+"...");
+   const f=new FormData();
+   f.append("file",files[i]);
+   const d=await api("/api/upload",{method:"POST",body:f});
+   if(!d.key)throw Error("Photo upload failed.");
+   photos.push(d.key);
+  }
+
+  const type=$("type").value;
+  const p=$("price").value;
+  const s=$("salary").value;
+  const website=$("website").value.trim();
+
+  const data={
+   title:$("title").value.trim(),
+   ad_type:type,
+   description:$("description").value.trim()||null,
+   category_id:$("adCategory").value?Number($("adCategory").value):null,
+   district_id:$("adDistrict").value?Number($("adDistrict").value):null,
+   city_id:$("city").value?Number($("city").value):null,
+   price_lkr:type==="job"||p===""?null:Number(p),
+   salary_lkr:type==="job"&&s!==""?Number(s):null,
+   website_url:website||null,
+   condition:type==="product"?($("condition").value||null):null,
+   seller_name:$("seller").value.trim()||null,
+   seller_phone:$("phone").value.trim()||null,
+   photos
+  };
+
+  if(!data.title)throw Error("Ad title is required.");
+  if(website&&!safeURL(website))throw Error("Use a valid http or https website link.");
+  if(p!==""&&(!Number.isFinite(Number(p))||Number(p)<0))throw Error("Enter a valid price.");
+  if(type==="job"&&s!==""&&(!Number.isFinite(Number(s))||Number(s)<0))throw Error("Enter a valid salary.");
+
+  say("postMsg","Submitting your ad...");
+  const result=await api("/api/ads",{method:"POST",body:data});
+
+  $("adForm").reset();
+  $("type").value="product";
+  updateTypeFields();
+  fill("city",[],"Choose city (optional)");
+  say("postMsg",result.message||"Your ad was submitted for approval.");
+
+  await Promise.all([loadBrowse(),loadRecent()]);
+ }catch(e){
+  say("postMsg","Could not submit ad: "+e.message);
+ }finally{
+  btn.disabled=false;
+ }
+};
+
+authUI();
+if(window.google?.accounts?.id)initGoogle();
+else window.addEventListener("load",initGoogle);
+options();
+loadBrowse();
+loadRecent();
 </script>
 </body>
 </html>
