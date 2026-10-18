@@ -1,0 +1,729 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1628">
+<title>Adsterra Admin | ApeBazar.lk</title>
+
+<style>
+:root {
+  --bg:#0b1628;
+  --panel:#14233a;
+  --panel2:#1b304b;
+  --border:#2b405e;
+  --text:#f4f7fb;
+  --muted:#9fb0c7;
+  --green:#36c99a;
+  --red:#ff8585;
+  --blue:#72a9ff;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0;
+  min-height:100vh;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial,Helvetica,sans-serif;
+}
+button,input { font:inherit; }
+button {
+  cursor:pointer;
+  border:0;
+  border-radius:9px;
+  padding:12px 16px;
+  background:var(--green);
+  color:#05251b;
+  font-weight:700;
+}
+button:disabled { opacity:.55; cursor:wait; }
+input {
+  width:100%;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:var(--bg);
+  color:var(--text);
+}
+label {
+  display:block;
+  color:var(--muted);
+  font-size:13px;
+  margin-bottom:7px;
+}
+.wrap { max-width:1180px; margin:auto; padding:22px; }
+.panel,.stat {
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:15px;
+  padding:20px;
+}
+.login {
+  max-width:410px;
+  margin:10vh auto;
+  box-shadow:0 18px 60px #0003;
+}
+.logo {
+  width:52px;
+  height:52px;
+  display:grid;
+  place-items:center;
+  border-radius:14px;
+  background:#203b50;
+  color:var(--green);
+  font-size:27px;
+  margin-bottom:18px;
+}
+h1 { font-size:25px; margin:0 0 8px; }
+h2 { font-size:18px; margin:0 0 16px; }
+p { line-height:1.5; }
+.muted { color:var(--muted); }
+.small { font-size:12px; }
+.hidden { display:none!important; }
+.error { color:var(--red)!important; }
+.success { color:var(--green)!important; }
+.full { width:100%; margin-top:17px; }
+.secondary { background:#293c56; color:var(--text); }
+header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  flex-wrap:wrap;
+  margin-bottom:22px;
+}
+.brand { display:flex; align-items:center; gap:13px; }
+.brand .logo { margin:0; }
+.status {
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  border:1px solid var(--border);
+  padding:8px 11px;
+  border-radius:20px;
+  font-size:12px;
+  color:var(--muted);
+}
+.dot { width:8px; height:8px; border-radius:50%; background:#718096; }
+.dot.good { background:var(--green); }
+.dot.bad { background:var(--red); }
+.grid {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:14px;
+  margin:16px 0;
+}
+.stat { min-width:0; }
+.stat-top {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  color:var(--muted);
+  font-size:13px;
+}
+.stat-icon {
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  display:grid;
+  place-items:center;
+  background:var(--panel2);
+  color:var(--green);
+}
+.stat strong {
+  display:block;
+  font-size:27px;
+  margin-top:17px;
+  overflow-wrap:anywhere;
+}
+.sub { font-size:12px; color:var(--muted); margin-top:8px; }
+.filters {
+  display:grid;
+  grid-template-columns:1fr 1fr auto auto;
+  gap:12px;
+  align-items:end;
+}
+#status {
+  font-size:13px;
+  overflow-wrap:anywhere;
+  margin:15px 0 0;
+  color:var(--muted);
+}
+.tablewrap { overflow:auto; }
+table { border-collapse:collapse; width:100%; min-width:650px; }
+th,td {
+  text-align:left;
+  padding:14px 12px;
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+th {
+  color:var(--muted);
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+td { font-size:13px; }
+tbody tr:hover { background:#ffffff06; }
+.toolbar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:12px;
+  margin-bottom:15px;
+}
+.pill {
+  background:#203b50;
+  color:var(--green);
+  padding:6px 9px;
+  border-radius:20px;
+  font-size:12px;
+}
+.footer {
+  text-align:center;
+  color:var(--muted);
+  font-size:12px;
+  padding:22px 0 6px;
+}
+@media(max-width:800px) {
+  .grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .filters { grid-template-columns:1fr 1fr; }
+  .filters button { width:100%; }
+}
+@media(max-width:460px) {
+  .wrap { padding:13px; }
+  .panel,.stat { padding:15px; }
+  .grid { gap:9px; }
+  .stat strong { font-size:21px; }
+  .filters { grid-template-columns:1fr; }
+  h1 { font-size:22px; }
+}
+</style>
+</head>
+
+<body>
+<main class="wrap">
+
+  <section id="login" class="panel login">
+    <div class="logo">↗</div>
+    <h1>Adsterra Admin</h1>
+    <p class="muted">ApeBazar.lk · Private publisher dashboard</p>
+
+    <form id="loginForm">
+      <label for="password">Admin password</label>
+      <input
+        id="password"
+        type="password"
+        autocomplete="current-password"
+        placeholder="Enter your admin password"
+        required
+        maxlength="256"
+      >
+      <button id="loginButton" class="full" type="submit">
+        Sign in securely
+      </button>
+    </form>
+
+    <p id="loginMessage" role="status" aria-live="polite"></p>
+    <p class="muted small">
+      Your login is verified by the Cloudflare Worker.
+    </p>
+  </section>
+
+  <section id="dashboard" class="hidden">
+
+    <header>
+      <div class="brand">
+        <div class="logo">↗</div>
+        <div>
+          <h1>Adsterra Dashboard</h1>
+          <div class="muted small">ApeBazar.lk · Publisher analytics</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="status">
+          <span id="statusDot" class="dot"></span>
+          <span id="connectionLabel">Not connected</span>
+        </div>
+        <button id="logout" class="secondary" type="button">
+          Logout
+        </button>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="toolbar">
+        <div>
+          <h2 style="margin-bottom:5px">Advertising report</h2>
+          <div class="muted small">Select your reporting period.</div>
+        </div>
+        <span class="pill">Adsterra API</span>
+      </div>
+
+      <div class="filters">
+        <div>
+          <label for="start">Start date</label>
+          <input id="start" type="date" required>
+        </div>
+        <div>
+          <label for="finish">End date</label>
+          <input id="finish" type="date" required>
+        </div>
+        <button id="refresh" type="button">Load report</button>
+        <button id="last7" type="button" class="secondary">Last 7 days</button>
+      </div>
+
+      <p id="status" role="status" aria-live="polite">
+        Sign in to load your report.
+      </p>
+    </section>
+
+    <section class="grid">
+      <article class="stat">
+        <div class="stat-top">
+          <span>Total revenue</span>
+          <span class="stat-icon">$</span>
+        </div>
+        <strong id="revenue">—</strong>
+        <div class="sub">Selected date range</div>
+      </article>
+
+      <article class="stat">
+        <div class="stat-top">
+          <span>Impressions</span>
+          <span class="stat-icon">◉</span>
+        </div>
+        <strong id="impressions">—</strong>
+        <div class="sub">Reported impressions</div>
+      </article>
+
+      <article class="stat">
+        <div class="stat-top">
+          <span>Clicks</span>
+          <span class="stat-icon">↗</span>
+        </div>
+        <strong id="clicks">—</strong>
+        <div class="sub">Reported clicks</div>
+      </article>
+
+      <article class="stat">
+        <div class="stat-top">
+          <span>Average CPM</span>
+          <span class="stat-icon">%</span>
+        </div>
+        <strong id="cpm">—</strong>
+        <div class="sub">Revenue per 1,000 impressions</div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="toolbar">
+        <div>
+          <h2 style="margin-bottom:5px">Daily performance</h2>
+          <div class="muted small">Report data returned by your Worker.</div>
+        </div>
+        <button id="export" class="secondary" type="button">Export CSV</button>
+      </div>
+
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Impressions</th>
+              <th>Clicks</th>
+              <th>CTR</th>
+              <th>CPM</th>
+              <th>Revenue</th>
+            </tr>
+          </thead>
+          <tbody id="rows">
+            <tr><td colspan="6" class="muted">No report loaded.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="footer">
+      ApeBazar.lk Adsterra Manager · Keep your credentials private
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  // Cloudflare Worker endpoint. Never put the Adsterra API key here.
+  const API = "https://adsterra.createlk.workers.dev";
+
+  // Session token stays in memory and is not saved in localStorage.
+  let token = "";
+  let reportRows = [];
+  let loading = false;
+
+  const $ = id => document.getElementById(id);
+
+  const dateString = date => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  function setDefaultDates() {
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(today.getDate() - 6);
+    $("start").value = dateString(start);
+    $("finish").value = dateString(today);
+  }
+
+  function setStatus(message, type = "normal") {
+    $("status").textContent = message;
+    $("status").className =
+      type === "error" ? "error" :
+      type === "success" ? "success" : "";
+  }
+
+  function setConnection(state, label) {
+    $("statusDot").className =
+      "dot" + (state === true ? " good" :
+      state === false ? " bad" : "");
+    $("connectionLabel").textContent = label;
+  }
+
+  async function apiRequest(path, options = {}) {
+    const headers = { ...(options.headers || {}) };
+
+    if (options.body !== undefined) {
+      headers["Content-Type"] = "application/json";
+    }
+
+    if (token) headers.Authorization = "Bearer " + token;
+
+    let response;
+
+    try {
+      response = await fetch(API + path, {
+        ...options,
+        headers,
+        cache: "no-store"
+      });
+    } catch {
+      throw new Error(
+        "Cannot connect to Cloudflare. Check the Worker URL and CORS settings."
+      );
+    }
+
+    let data;
+
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error("The Worker returned a non-JSON response.");
+    }
+
+    if (!response.ok) {
+      if (response.status === 401 && path.startsWith("/api/stats")) {
+        lockDashboard("Your session expired. Please sign in again.");
+      }
+
+      throw new Error(
+        data.error || "Request failed (HTTP " + response.status + ")."
+      );
+    }
+
+    return data;
+  }
+
+  function formatNumber(value) {
+    return Number(value || 0).toLocaleString(undefined, {
+      maximumFractionDigits: 2
+    });
+  }
+
+  function formatMoney(value) {
+    return "$" + Number(value || 0).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4
+    });
+  }
+
+  function getValue(row, keys) {
+    for (const key of keys) {
+      if (row && row[key] !== undefined &&
+          row[key] !== null && row[key] !== "") {
+        return row[key];
+      }
+    }
+    return "";
+  }
+
+  function getNumber(row, keys) {
+    const value = getValue(row, keys);
+    const n = Number(String(value).replace(/[$,%\s,]/g, ""));
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  const fields = {
+    date: ["date", "day"],
+    impressions: ["impressions", "impression", "views"],
+    clicks: ["clicks", "click"],
+    revenue: ["revenue", "earnings", "income"],
+    cpm: ["cpm", "ecpm"],
+    ctr: ["ctr", "click_through_rate"]
+  };
+
+  function getRows(payload) {
+    if (Array.isArray(payload)) return payload;
+
+    if (payload && typeof payload === "object") {
+      for (const key of ["items", "data", "stats", "results", "report"]) {
+        if (Array.isArray(payload[key])) return payload[key];
+      }
+    }
+
+    return [];
+  }
+
+  function renderRows(rows) {
+    const tbody = $("rows");
+    tbody.replaceChildren();
+
+    if (!rows.length) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 6;
+      td.textContent = "No report rows returned for this date range.";
+      td.className = "muted";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      return;
+    }
+
+    rows.forEach(row => {
+      const impressions = getNumber(row, fields.impressions);
+      const clicks = getNumber(row, fields.clicks);
+      const revenue = getNumber(row, fields.revenue);
+      const cpmRaw = getValue(row, fields.cpm);
+      const cpm = cpmRaw !== ""
+        ? getNumber(row, fields.cpm)
+        : impressions ? revenue / impressions * 1000 : 0;
+
+      const ctrRaw = getValue(row, fields.ctr);
+      const ctr = ctrRaw !== ""
+        ? String(ctrRaw) + (String(ctrRaw).includes("%") ? "" : "%")
+        : impressions ? (clicks / impressions * 100).toFixed(2) + "%" : "—";
+
+      const values = [
+        getValue(row, fields.date) || "—",
+        formatNumber(impressions),
+        formatNumber(clicks),
+        ctr,
+        formatMoney(cpm),
+        formatMoney(revenue)
+      ];
+
+      const tr = document.createElement("tr");
+      values.forEach(value => {
+        const td = document.createElement("td");
+        td.textContent = String(value);
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  }
+
+  function lockDashboard(message = "You have been logged out.") {
+    token = "";
+    reportRows = [];
+    loading = false;
+
+    $("dashboard").classList.add("hidden");
+    $("login").classList.remove("hidden");
+    $("password").value = "";
+    $("loginMessage").textContent = message;
+    $("refresh").disabled = false;
+
+    ["revenue", "impressions", "clicks", "cpm"].forEach(id => {
+      $(id).textContent = "—";
+    });
+
+    $("rows").replaceChildren();
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 6;
+    td.textContent = "Sign in to view reports.";
+    td.className = "muted";
+    tr.appendChild(td);
+    $("rows").appendChild(tr);
+
+    setConnection(null, "Not connected");
+  }
+
+  async function loadReport() {
+    if (!token || loading) return;
+
+    const start = $("start").value;
+    const finish = $("finish").value;
+
+    if (!start || !finish || start > finish) {
+      setStatus("Please select a valid date range.", "error");
+      return;
+    }
+
+    const days = (
+      Date.parse(finish + "T00:00:00Z") -
+      Date.parse(start + "T00:00:00Z")
+    ) / 86400000;
+
+    if (days > 89) {
+      setStatus("Choose a date range of no more than 90 days.", "error");
+      return;
+    }
+
+    loading = true;
+    $("refresh").disabled = true;
+    setStatus("Loading report from Adsterra…");
+
+    try {
+      const params = new URLSearchParams({
+        start_date: start,
+        finish_date: finish
+      });
+
+      const response = await apiRequest(
+        "/api/stats?" + params.toString()
+      );
+
+      reportRows = getRows(response.data);
+
+      if (!Array.isArray(response.data) &&
+          (!response.data || typeof response.data !== "object")) {
+        throw new Error("Unexpected report response format.");
+      }
+
+      const totals = reportRows.reduce((sum, row) => {
+        sum.impressions += getNumber(row, fields.impressions);
+        sum.clicks += getNumber(row, fields.clicks);
+        sum.revenue += getNumber(row, fields.revenue);
+        return sum;
+      }, { impressions: 0, clicks: 0, revenue: 0 });
+
+      $("revenue").textContent = formatMoney(totals.revenue);
+      $("impressions").textContent = formatNumber(totals.impressions);
+      $("clicks").textContent = formatNumber(totals.clicks);
+      $("cpm").textContent = totals.impressions
+        ? formatMoney(totals.revenue / totals.impressions * 1000)
+        : "—";
+
+      renderRows(reportRows);
+      setConnection(true, "Worker connected");
+
+      setStatus(
+        reportRows.length
+          ? `Report loaded: ${reportRows.length} row(s), ${start} to ${finish}.`
+          : "Connected, but no report rows were returned. Check your Worker response format.",
+        reportRows.length ? "success" : "normal"
+      );
+    } catch (error) {
+      setStatus(error.message || "Unable to load report.", "error");
+      if (error.message.includes("Cannot connect")) {
+        setConnection(false, "Connection failed");
+      }
+    } finally {
+      loading = false;
+      $("refresh").disabled = false;
+    }
+  }
+
+  $("loginForm").addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const password = $("password").value;
+    if (!password) return;
+
+    $("loginButton").disabled = true;
+    $("loginMessage").textContent = "Authenticating…";
+
+    try {
+      const response = await apiRequest("/api/login", {
+        method: "POST",
+        body: JSON.stringify({ password })
+      });
+
+      if (!response.token) {
+        throw new Error("No session token was returned by the Worker.");
+      }
+
+      token = response.token;
+      $("login").classList.add("hidden");
+      $("dashboard").classList.remove("hidden");
+      $("loginMessage").textContent = "";
+
+      await loadReport();
+    } catch (error) {
+      $("loginMessage").textContent = error.message || "Login failed.";
+    } finally {
+      $("loginButton").disabled = false;
+      $("password").value = "";
+    }
+  });
+
+  $("refresh").addEventListener("click", loadReport);
+
+  $("last7").addEventListener("click", () => {
+    setDefaultDates();
+    loadReport();
+  });
+
+  $("logout").addEventListener("click", () => {
+    lockDashboard();
+  });
+
+  $("export").addEventListener("click", () => {
+    if (!reportRows.length) {
+      setStatus("No report data available to export.", "error");
+      return;
+    }
+
+    const columns = [
+      ["Date", fields.date],
+      ["Impressions", fields.impressions],
+      ["Clicks", fields.clicks],
+      ["CTR", fields.ctr],
+      ["CPM", fields.cpm],
+      ["Revenue", fields.revenue]
+    ];
+
+    const cell = value =>
+      '"' + String(value ?? "").replace(/"/g, '""') + '"';
+
+    const csv = [
+      columns.map(([name]) => cell(name)).join(","),
+      ...reportRows.map(row =>
+        columns.map(([, keys]) => cell(getValue(row, keys))).join(",")
+      )
+    ].join("\r\n");
+
+    const blob = new Blob(["\uFEFF", csv], {
+      type: "text/csv;charset=utf-8"
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "adsterra-report.csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  setDefaultDates();
+})();
+</script>
+</body>
+</html>
