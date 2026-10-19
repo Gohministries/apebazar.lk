@@ -358,10 +358,8 @@ tbody tr:hover { background:#ffffff06; }
 (() => {
   "use strict";
 
-  // Cloudflare Worker endpoint. Never put the Adsterra API key here.
   const API = "https://adsterra.createlk.workers.dev";
 
-  // Session token stays in memory and is not saved in localStorage.
   let token = "";
   let reportRows = [];
   let loading = false;
@@ -400,7 +398,15 @@ tbody tr:hover { background:#ffffff06; }
   async function apiRequest(path, options = {}) {
     const headers = { ...(options.headers || {}) };
 
-    if (options.body !== undefined) {
+    if (options.body !== undefined &&
+        !(options.body instanceof FormData) &&
+        typeof options.body !== "string") {
+      headers["Content-Type"] = "application/json";
+      options = {
+        ...options,
+        body: JSON.stringify(options.body)
+      };
+    } else if (typeof options.body === "string") {
       headers["Content-Type"] = "application/json";
     }
 
@@ -442,15 +448,24 @@ tbody tr:hover { background:#ffffff06; }
   }
 
   function formatNumber(value) {
-    return Number(value || 0).toLocaleString(undefined, {
+    return Number(value || 0).toLocaleString("en-US", {
       maximumFractionDigits: 2
     });
   }
 
+  // Revenue: retain up to four decimal places.
   function formatMoney(value) {
-    return "$" + Number(value || 0).toLocaleString(undefined, {
+    return "$" + Number(value || 0).toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 4
+    });
+  }
+
+  // CPM: show additional precision for very small values.
+  function formatRate(value) {
+    return "$" + Number(value || 0).toLocaleString("en-US", {
+      minimumFractionDigits: 4,
+      maximumFractionDigits: 6
     });
   }
 
@@ -511,30 +526,36 @@ tbody tr:hover { background:#ffffff06; }
       const clicks = getNumber(row, fields.clicks);
       const revenue = getNumber(row, fields.revenue);
       const cpmRaw = getValue(row, fields.cpm);
+
       const cpm = cpmRaw !== ""
         ? getNumber(row, fields.cpm)
         : impressions ? revenue / impressions * 1000 : 0;
 
       const ctrRaw = getValue(row, fields.ctr);
       const ctr = ctrRaw !== ""
-        ? String(ctrRaw) + (String(ctrRaw).includes("%") ? "" : "%")
-        : impressions ? (clicks / impressions * 100).toFixed(2) + "%" : "—";
+        ? String(ctrRaw) +
+          (String(ctrRaw).includes("%") ? "" : "%")
+        : impressions
+          ? (clicks / impressions * 100).toFixed(2) + "%"
+          : "—";
 
       const values = [
         getValue(row, fields.date) || "—",
         formatNumber(impressions),
         formatNumber(clicks),
         ctr,
-        formatMoney(cpm),
+        formatRate(cpm),
         formatMoney(revenue)
       ];
 
       const tr = document.createElement("tr");
+
       values.forEach(value => {
         const td = document.createElement("td");
         td.textContent = String(value);
         tr.appendChild(td);
       });
+
       tbody.appendChild(tr);
     });
   }
@@ -549,12 +570,14 @@ tbody tr:hover { background:#ffffff06; }
     $("password").value = "";
     $("loginMessage").textContent = message;
     $("refresh").disabled = false;
+    $("loginButton").disabled = false;
 
     ["revenue", "impressions", "clicks", "cpm"].forEach(id => {
       $(id).textContent = "—";
     });
 
     $("rows").replaceChildren();
+
     const tr = document.createElement("tr");
     const td = document.createElement("td");
     td.colSpan = 6;
@@ -618,8 +641,9 @@ tbody tr:hover { background:#ffffff06; }
       $("revenue").textContent = formatMoney(totals.revenue);
       $("impressions").textContent = formatNumber(totals.impressions);
       $("clicks").textContent = formatNumber(totals.clicks);
+
       $("cpm").textContent = totals.impressions
-        ? formatMoney(totals.revenue / totals.impressions * 1000)
+        ? formatRate(totals.revenue / totals.impressions * 1000)
         : "—";
 
       renderRows(reportRows);
@@ -633,6 +657,7 @@ tbody tr:hover { background:#ffffff06; }
       );
     } catch (error) {
       setStatus(error.message || "Unable to load report.", "error");
+
       if (error.message.includes("Cannot connect")) {
         setConnection(false, "Connection failed");
       }
@@ -714,11 +739,13 @@ tbody tr:hover { background:#ffffff06; }
     const blob = new Blob(["\uFEFF", csv], {
       type: "text/csv;charset=utf-8"
     });
+
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     link.download = "adsterra-report.csv";
     link.click();
+
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
 
