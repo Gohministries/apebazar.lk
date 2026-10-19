@@ -1,0 +1,335 @@
+
+const API_BASE = "https://api3.adsterratools.com/publisher";
+const SESSION_LIFETIME = 8 * 60 * 60;
+const MAX_DATE_RANGE_DAYS = 90;
+
+function json(data, status = 200, cors = {}) {
+  return Response.json(data, {
+    status,
+    headers: {
+      "Cache-Control": "no-store",
+      ...cors
+    }
+  });
+}
+
+function getCors(request, env) {
+  const origin = request.headers.get("Origin");
+  const allowed = (env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map(v => v.trim())
+    .filter(Boolean);
+
+  if (!origin) {
+    return { "Access-Control-Allow-Origin": "*" };
+  }
+
+  if (allowed.includes("*")) {
+    return {
+      "Access-Control-Allow-Origin": origin,
+      "Vary": "Origin"
+    };
+  }
+
+  if (!allowed.includes(origin)) return null;
+
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Vary": "Origin"
+  };
+}
+
+function b64url(bytes) {
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function unb64url(value) {
+  const s = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = s + "=".repeat((4 - s.length % 4) % 4);
+  const binary = atob(padded);
+  return Uint8Array.from(binary, c => c.charCodeAt(0));
+}
+
+async function importSigningKey(secret, usages) {
+  return crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    usages
+  );
+}
+
+async function createSession(secret) {
+  const payload = b64url(
+    new TextEncoder().encode(JSON.stringify({
+      exp: Math.floor(Date.now() / 1000) + SESSION_LIFETIME,
+      id: crypto.randomUUID()
+    }))
+  );
+
+  const key = await importSigningKey(secret, ["sign"]);
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(payload)
+  );
+
+  return payload + "." + b64url(new Uint8Array(signature));
+}
+
+async function verifySession(request, secret) {
+  const header = request.headers.get("Authorization") || "";
+  const match = header.match(/^Bearer ([A-Za-z0-9_.-]+)$/);
+  if (!match) return false;
+
+  const parts = match[1].split(".");
+  if (parts.length !== 2) return false;
+
+  try {
+    const key = await importSigningKey(secret, ["verify"]);
+    const valid = await crypto.subtle.verify(
+      "HMAC",
+      key,
+      unb64url(parts[1]),
+      new TextEncoder().encode(parts[0])
+    );
+
+    if (!valid) return false;
+
+    const payload = JSON.parse(
+      new TextDecoder().decode(unb64url(parts[0]))
+    );
+
+    return Number.isFinite(payload.exp) &&
+      payload.exp > Math.floor(Date.now() / 1000);
+  } catch {
+    return false;
+  }
+}
+
+function isValidDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return false;
+
+  const d = new Date(value + "T00:00:00Z");
+  return !Number.isNaN(d.getTime()) &&
+    d.toISOString().slice(0, 10) === value;
+}
+
+async function login(request, env, cors) {
+  if (request.method !== "POST") {
+    return json({ error: "Method not allowed." }, 405, cors);
+  }
+
+  if (!env.ADMIN_PASSWORD || !env.SESSION_SECRET) {
+    return json({
+      error: "Configure ADMIN_PASSWORD and SESSION_SECRET in Worker settings."
+    }, 500, cors);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Invalid JSON." }, 400, cors);
+  }
+
+  const password = typeof body.password === "string"
+    ? body.password
+    : "";
+
+  if (!password || password.length > 256 ||
+      password !== env.ADMIN_PASSWORD) {
+    return json({ error: "Incorrect admin password." }, 401, cors);
+  }
+
+  return json({
+    success: true,
+    token: await createSession(env.SESSION_SECRET),
+    expires_in: SESSION_LIFETIME
+  }, 200, cors);
+}
+
+function firstDefined(object, keys) {
+  for (const key of keys) {
+    if (object && object[key] !== undefined && object[key] !== null) {
+      return object[key];
+    }
+  }
+  return null;
+}
+
+function normaliseRow(row) {
+  const impressions = firstDefined(row, ["impressions", "impression", "views"]);
+  const clicks = firstDefined(row, ["clicks", "click"]);
+  const revenue = firstDefined(row, ["revenue", "earnings", "income"]);
+  const cpm = firstDefined(row, ["cpm", "ecpm"]);
+  const ctr = firstDefined(row, ["ctr", "click_through_rate"]);
+
+  return {
+    ...row,
+    date: firstDefined(row, ["date", "day", "stat_date"]),
+    impressions,
+    clicks,
+    revenue,
+    cpm,
+    ctr
+  };
+}
+
+function extractRows(payload) {
+  if (Array.isArray(payload)) return payload;
+
+  if (payload && typeof payload === "object") {
+    for (const key of ["items", "data", "stats", "results", "report"]) {
+      if (Array.isArray(payload[key])) return payload[key];
+    }
+  }
+
+  return null;
+}
+
+async function stats(request, env, cors) {
+  if (request.method !== "GET") {
+    return json({ error: "Method not allowed." }, 405, cors);
+  }
+
+  if (!env.ADSTERRA_API_KEY || !env.SESSION_SECRET) {
+    return json({
+      error: "Configure ADSTERRA_API_KEY and SESSION_SECRET in Worker settings."
+    }, 500, cors);
+  }
+
+  if (!await verifySession(request, env.SESSION_SECRET)) {
+    return json({
+      error: "Session expired. Please log in again."
+    }, 401, cors);
+  }
+
+  const url = new URL(request.url);
+  const start = url.searchParams.get("start_date");
+  const finish = url.searchParams.get("finish_date");
+
+  if (!isValidDate(start) || !isValidDate(finish)) {
+    return json({
+      error: "Use valid start_date and finish_date values (YYYY-MM-DD)."
+    }, 400, cors);
+  }
+
+  if (start > finish) {
+    return json({ error: "Start date must not be after end date." }, 400, cors);
+  }
+
+  const days = (
+    Date.parse(finish + "T00:00:00Z") -
+    Date.parse(start + "T00:00:00Z")
+  ) / 86400000;
+
+  if (days >= MAX_DATE_RANGE_DAYS) {
+    return json({ error: "Select a date range of up to 90 days." }, 400, cors);
+  }
+
+  const upstreamUrl = new URL(API_BASE + "/stats.json");
+  upstreamUrl.searchParams.set("start_date", start);
+  upstreamUrl.searchParams.set("finish_date", finish);
+  upstreamUrl.searchParams.set("group_by", "date");
+
+  let response;
+  try {
+    response = await fetch(upstreamUrl, {
+      headers: {
+        "Accept": "application/json",
+        "X-API-Key": env.ADSTERRA_API_KEY
+      },
+      signal: AbortSignal.timeout(20000)
+    });
+  } catch {
+    return json({
+      error: "Unable to connect to Adsterra. Check the API connection and try again."
+    }, 502, cors);
+  }
+
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    return json({
+      error: "Adsterra returned an invalid response."
+    }, 502, cors);
+  }
+
+  if (!response.ok) {
+    return json({
+      error: response.status === 401 || response.status === 403
+        ? "Adsterra rejected the API token. Verify your publisher API key."
+        : "Adsterra API returned HTTP " + response.status + "."
+    }, 502, cors);
+  }
+
+  const rows = extractRows(payload);
+  if (!rows) {
+    return json({
+      error: "Unrecognised Adsterra response format. Check the API response structure."
+    }, 502, cors);
+  }
+
+  return json({
+    success: true,
+    start_date: start,
+    finish_date: finish,
+    data: rows.map(normaliseRow)
+  }, 200, cors);
+}
+
+export default {
+  async fetch(request, env) {
+    const cors = getCors(request, env);
+
+    if (request.method === "OPTIONS") {
+      if (!cors) return new Response(null, { status: 403 });
+
+      return new Response(null, {
+        status: 204,
+        headers: {
+          ...cors,
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          "Access-Control-Max-Age": "86400"
+        }
+      });
+    }
+
+    if (!cors) {
+      return json({ error: "Origin not allowed." }, 403);
+    }
+
+    const path = new URL(request.url).pathname;
+
+    try {
+      if (path === "/api/login") {
+        return await login(request, env, cors);
+      }
+
+      if (path === "/api/stats") {
+        return await stats(request, env, cors);
+      }
+
+      if (path === "/") {
+        return json({
+          name: "Adsterra Dashboard API v2",
+          status: "running",
+          endpoints: ["/api/login", "/api/stats"]
+        }, 200, cors);
+      }
+
+      return json({ error: "Not found." }, 404, cors);
+    } catch {
+      return json({ error: "Unexpected Worker error." }, 500, cors);
+    }
+  }
+};
