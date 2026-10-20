@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#102a56">
 <title>My Ads | ApeBazar.lk</title>
+
 <style>
 :root{--navy:#102a56;--gold:#d69b16;--bg:#f4f6fa;--text:#182337}
 *{box-sizing:border-box}
@@ -44,8 +45,10 @@ button:disabled{opacity:.55;cursor:default}
  .ad img{height:210px}
 }
 </style>
+
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
+
 <body>
 <header>
   <div class="head">
@@ -80,6 +83,8 @@ button:disabled{opacity:.55;cursor:default}
 </main>
 
 <script>
+"use strict";
+
 const PUBLIC_API = "https://apebazar-public-api.createlk.workers.dev";
 const MY_ADS_API = "https://apebazar-my-ads.createlk.workers.dev";
 const GOOGLE_CLIENT_ID =
@@ -90,17 +95,24 @@ const tokenKey = "apebazar_token";
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, ch => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
   })[ch]);
 }
 
 function money(value) {
-  if (value == null || value === "") return "";
+  if (value == null || value === "" || !Number.isFinite(Number(value))) {
+    return "";
+  }
   return "LKR " + Number(value).toLocaleString("en-LK");
 }
 
 function safeUrl(value) {
   try {
+    if (!value) return "";
     const u = new URL(value, location.origin);
     return ["https:", "http:"].includes(u.protocol) ? u.href : "";
   } catch {
@@ -109,8 +121,10 @@ function safeUrl(value) {
 }
 
 function adLink(ad) {
-  return new URL("/Ape/ads.html?id=" + encodeURIComponent(ad.id),
-    location.origin).href;
+  return new URL(
+    "/Ape/ads.html?id=" + encodeURIComponent(ad.id),
+    location.origin
+  ).href;
 }
 
 async function copyLink(ad) {
@@ -135,7 +149,9 @@ function statusClass(status) {
 function dateText(value) {
   if (!value) return "—";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+  return Number.isNaN(date.getTime())
+    ? String(value)
+    : date.toLocaleDateString();
 }
 
 function setMessage(message) {
@@ -146,11 +162,16 @@ function setMessage(message) {
 async function api(path, options = {}) {
   const headers = new Headers(options.headers || {});
   const token = sessionStorage.getItem(tokenKey);
-  if (token) headers.set("Authorization", "Bearer " + token);
+
+  if (token) {
+    headers.set("Authorization", "Bearer " + token);
+  }
 
   const response = await fetch(MY_ADS_API + path, {
-    ...options, headers
+    ...options,
+    headers
   });
+
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -158,17 +179,20 @@ async function api(path, options = {}) {
     error.status = response.status;
     throw error;
   }
+
   return data;
 }
 
 function showLogin() {
   $("loginBox").classList.remove("hidden");
   $("message").classList.add("hidden");
+
   if (window.google?.accounts?.id) {
     google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback: handleGoogleLogin
     });
+
     google.accounts.id.renderButton($("googleButton"), {
       theme: "outline",
       size: "large",
@@ -183,19 +207,26 @@ function showLogin() {
 
 async function handleGoogleLogin(response) {
   $("loginMessage").textContent = "Signing in...";
+
   try {
-    // Reuse the existing public API's Google authentication endpoint.
     const result = await fetch(PUBLIC_API + "/api/auth/google", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({credential: response.credential})
+      body: JSON.stringify({
+        credential: response.credential
+      })
     });
 
     const data = await result.json().catch(() => ({}));
-    if (!result.ok) throw new Error(data.error || "Google sign-in failed");
 
-    const token = data.token || data.session_token ||
-      data.access_token || data.session?.token;
+    if (!result.ok) {
+      throw new Error(data.error || "Google sign-in failed");
+    }
+
+    const token = data.token ||
+      data.session_token ||
+      data.access_token ||
+      data.session?.token;
 
     if (!token) {
       throw new Error(
@@ -207,6 +238,7 @@ async function handleGoogleLogin(response) {
     sessionStorage.setItem(tokenKey, token);
     $("loginBox").classList.add("hidden");
     await loadMyAds();
+
   } catch (error) {
     $("loginMessage").textContent = error.message;
   }
@@ -216,7 +248,8 @@ function renderMyAd(ad) {
   const status = String(ad.status || "UNKNOWN").toUpperCase();
   const approved = status === "APPROVED";
   const photo = safeUrl(ad.image_url || ad.photo_url || "");
-  const price = ad.ad_type === "JOB"
+
+  const price = String(ad.ad_type || "").toUpperCase() === "JOB"
     ? money(ad.salary_lkr)
     : money(ad.price_lkr);
 
@@ -224,31 +257,61 @@ function renderMyAd(ad) {
   card.className = "ad";
 
   card.innerHTML = `
-    ${photo ? `<img src="${escapeHtml(photo)}" alt=""
-      loading="lazy" onerror="this.remove()">` : ""}
+    ${photo ? `
+      <img src="${escapeHtml(photo)}"
+           alt=""
+           loading="lazy"
+           onerror="this.remove()">
+    ` : ""}
+
     <div>
       <h2>${escapeHtml(ad.title || "Untitled ad")}</h2>
-      <span class="status ${statusClass(ad.status)}">${escapeHtml(status)}</span>
-      ${price ? `<div class="price">${escapeHtml(price)}</div>` : ""}
-      <p class="muted">${escapeHtml(ad.category || "")}
+
+      <span class="status ${statusClass(status)}">
+        ${escapeHtml(status)}
+      </span>
+
+      ${price ? `
+        <div class="price">${escapeHtml(price)}</div>
+      ` : ""}
+
+      <p class="muted">
+        ${escapeHtml(ad.category || "")}
         ${ad.city ? " · " + escapeHtml(ad.city) : ""}
-        ${ad.district ? " · " + escapeHtml(ad.district) : ""}</p>
-      <p class="muted">Posted: ${escapeHtml(dateText(ad.created_at))}</p>
-      <p class="muted">Expiry: ${escapeHtml(dateText(ad.expires_at))}</p>
+        ${ad.district ? " · " + escapeHtml(ad.district) : ""}
+      </p>
+
+      <p class="muted">
+        Posted: ${escapeHtml(dateText(ad.created_at))}
+      </p>
+
+      <p class="muted">
+        Expiry: ${escapeHtml(dateText(ad.expires_at))}
+      </p>
+
       <div class="actions">
-        ${approved
-          ? `<button class="view secondary">View / Share</button>
-             <button class="copy gold">Copy Link</button>`
-          : `<span class="muted">Your ad link will be publicly available after approval.</span>`}
+        ${approved ? `
+          <button class="view secondary">View / Share</button>
+          <button class="copy gold">Copy Link</button>
+        ` : `
+          <span class="muted">
+            Your ad link will be publicly available after approval.
+          </span>
+        `}
       </div>
-    </div>`;
+    </div>
+  `;
 
   if (approved) {
     card.querySelector(".view").addEventListener("click", () => {
       location.href = adLink(ad);
     });
-    card.querySelector(".copy").addEventListener("click", () => copyLink(ad));
+
+    card.querySelector(".copy").addEventListener("click", () => {
+      copyLink(ad);
+    });
   }
+
   return card;
 }
 
@@ -270,72 +333,164 @@ async function loadMyAds() {
     const fragment = document.createDocumentFragment();
     ads.forEach(ad => fragment.append(renderMyAd(ad)));
     $("ads").append(fragment);
+
   } catch (error) {
     if (error.status === 401) {
       showLogin();
       return;
     }
+
     setMessage(error.message || "Could not load your ads.");
   }
 }
 
+/*
+ * PUBLIC AD DETAIL FIX
+ * Uses the existing GET /api/listings route.
+ * Does not require a new Public API Worker route.
+ */
 async function loadPublicAd(id) {
   $("myPage").classList.add("hidden");
   $("publicPage").classList.remove("hidden");
   $("publicAd").textContent = "Loading ad...";
 
   try {
-    const response = await fetch(
-      PUBLIC_API + "/api/listings/" + encodeURIComponent(id)
-    );
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || "This ad is no longer available.");
+    if (!/^\d+$/.test(String(id)) || Number(id) < 1) {
+      throw new Error("Invalid ad ID.");
+    }
 
-    const ad = data.ad || data.listing || data;
-    if (!ad || !ad.id || !ad.title) {
-      throw new Error("This ad is no longer available.");
+    // Fetch the supported listings endpoint, not /api/listings/:id.
+    const response = await fetch(PUBLIC_API + "/api/listings");
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.error || "Unable to load ads.");
+    }
+
+    /*
+     * Handle common API response structures:
+     * [ ... ], { listings: [...] }, { ads: [...] },
+     * { data: [...] }, or { success: true, listings: [...] }.
+     */
+    let listings = [];
+
+    if (Array.isArray(data)) {
+      listings = data;
+    } else if (Array.isArray(data.listings)) {
+      listings = data.listings;
+    } else if (Array.isArray(data.ads)) {
+      listings = data.ads;
+    } else if (Array.isArray(data.data)) {
+      listings = data.data;
+    }
+
+    const ad = listings.find(
+      item => String(item.id) === String(id)
+    );
+
+    if (!ad || !ad.title) {
+      throw new Error(
+        "This ad was not found in the approved listings. " +
+        "It may be pending approval, expired, or unavailable."
+      );
     }
 
     const photo = safeUrl(ad.image_url || ad.photo_url || "");
-    const price = ad.ad_type === "JOB"
+
+    const price = String(ad.ad_type || "").toUpperCase() === "JOB"
       ? money(ad.salary_lkr)
       : money(ad.price_lkr);
-    const phone = String(ad.seller_phone || "").replace(/[^\d+]/g, "");
+
+    const phone = String(ad.seller_phone || "")
+      .replace(/[^\d+]/g, "");
+
+    const whatsappPhone = phone.replace(/\D/g, "");
     const website = safeUrl(ad.website_url);
 
     $("publicAd").innerHTML = `
       <article class="panel">
-        ${photo ? `<img class="detail-photo" src="${escapeHtml(photo)}"
-          alt="${escapeHtml(ad.title)}">` : ""}
-        <h1 style="margin-top:16px">${escapeHtml(ad.title)}</h1>
-        ${price ? `<div class="price">${escapeHtml(price)}</div>` : ""}
-        <p class="muted">${escapeHtml(ad.category || "")}
+        ${photo ? `
+          <img class="detail-photo"
+               src="${escapeHtml(photo)}"
+               alt="${escapeHtml(ad.title)}"
+               onerror="this.style.display='none'">
+        ` : ""}
+
+        <h1 style="margin-top:16px">
+          ${escapeHtml(ad.title)}
+        </h1>
+
+        ${price ? `
+          <div class="price">${escapeHtml(price)}</div>
+        ` : ""}
+
+        <p class="muted">
+          ${escapeHtml(ad.category || "")}
           ${ad.city ? " · " + escapeHtml(ad.city) : ""}
-          ${ad.district ? " · " + escapeHtml(ad.district) : ""}</p>
+          ${ad.district ? " · " + escapeHtml(ad.district) : ""}
+        </p>
+
         <p>${escapeHtml(ad.description || "")}</p>
-        ${ad.condition ? `<p><b>Condition:</b> ${escapeHtml(ad.condition)}</p>` : ""}
-        ${ad.seller_name ? `<p><b>Seller:</b> ${escapeHtml(ad.seller_name)}</p>` : ""}
+
+        ${ad.condition ? `
+          <p><b>Condition:</b> ${escapeHtml(ad.condition)}</p>
+        ` : ""}
+
+        ${ad.seller_name ? `
+          <p><b>Seller:</b> ${escapeHtml(ad.seller_name)}</p>
+        ` : ""}
+
         <div class="actions">
-          ${phone ? `<a class="btn" href="tel:${encodeURIComponent(phone)}">Call Seller</a>
-            <a class="btn" href="https://wa.me/${encodeURIComponent(phone.replace(/^\+/, ""))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
-          ${website ? `<a class="btn secondary" href="${escapeHtml(website)}" target="_blank" rel="noopener">Website</a>` : ""}
-          <button id="shareAd" class="gold">Copy Ad Link</button>
+          ${phone ? `
+            <a class="btn"
+               href="tel:${encodeURIComponent(phone)}">
+              Call Seller
+            </a>
+          ` : ""}
+
+          ${whatsappPhone ? `
+            <a class="btn"
+               href="https://wa.me/${encodeURIComponent(whatsappPhone)}"
+               target="_blank"
+               rel="noopener">
+              WhatsApp
+            </a>
+          ` : ""}
+
+          ${website ? `
+            <a class="btn secondary"
+               href="${escapeHtml(website)}"
+               target="_blank"
+               rel="noopener">
+              Website
+            </a>
+          ` : ""}
+
+          <button id="shareAd" class="gold">
+            Copy Ad Link
+          </button>
         </div>
-      </article>`;
+      </article>
+    `;
 
     $("shareAd").addEventListener("click", () => copyLink(ad));
+
   } catch (error) {
-    $("publicAd").innerHTML =
-      `<div class="panel"><h2>Ad unavailable</h2><p class="muted">${
-        escapeHtml(error.message)
-      }</p><a class="btn" href="/">Browse other ads</a></div>`;
+    $("publicAd").innerHTML = `
+      <div class="panel">
+        <h2>Ad unavailable</h2>
+        <p class="muted">${escapeHtml(error.message)}</p>
+        <a class="btn" href="/">Browse other ads</a>
+      </div>
+    `;
   }
 }
 
+// Choose between My Ads and public ad detail.
 const params = new URLSearchParams(location.search);
 const publicId = params.get("id");
 
-if (publicId) {
+if (publicId !== null) {
   loadPublicAd(publicId);
 } else {
   loadMyAds();
