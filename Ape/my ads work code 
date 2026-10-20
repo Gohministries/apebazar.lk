@@ -1,0 +1,197 @@
+
+const SITE = "https://apebazar.lk";
+const PUBLIC_API = "https://apebazar-public-api.createlk.workers.dev";
+
+function cors(request) {
+  const origin = request.headers.get("Origin") || "";
+  const allowed = [
+    "https://apebazar.lk",
+    "https://www.apebazar.lk"
+  ];
+
+  return {
+    "Access-Control-Allow-Origin":
+      allowed.includes(origin) ? origin : SITE,
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin"
+  };
+}
+
+function json(data, status, headers) {
+  return new Response(JSON.stringify(data), {
+    status: status || 200,
+    headers: {
+      ...headers,
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff"
+    }
+  });
+}
+
+function base64urlToBytes(value) {
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64 + "=".repeat((4 - base64.length % 4) % 4);
+  const binary = atob(padded);
+  return Uint8Array.from(binary, c => c.charCodeAt(0));
+}
+
+async function verifyToken(token, secret) {
+  // Expected token format:
+  // base64url(JSON payload).base64url(HMAC-SHA256(payload segment))
+  const parts = token.split(".");
+  if (parts.length !== 2 || !secret) return null;
+
+  const [payloadPart, signaturePart] = parts;
+
+  try {
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+
+    const signature = new Uint8Array(
+      await crypto.subtle.sign(
+        "HMAC",
+        key,
+        new TextEncoder().encode(payloadPart)
+      )
+    );
+
+    const supplied = base64urlToBytes(signaturePart);
+
+    if (signature.length !== supplied.length) return null;
+
+    let difference = 0;
+    for (let i = 0; i < signature.length; i++) {
+      difference |= signature[i] ^ supplied[i];
+    }
+    if (difference !== 0) return null;
+
+    const payload = JSON.parse(
+      new TextDecoder().decode(base64urlToBytes(payloadPart))
+    );
+
+    if (payload.exp != null) {
+      let expiry = Number(payload.exp);
+      if (expiry > 1e12) expiry /= 1000;
+      if (!Number.isFinite(expiry) || expiry <= Date.now() / 1000) {
+        return null;
+      }
+    }
+
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+async function authenticate(request, env) {
+  const header = request.headers.get("Authorization") || "";
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  if (!match) return null;
+
+  const payload = await verifyToken(match[1], env.SESSION_SECRET);
+  if (!payload || payload.id == null) return null;
+
+  return String(payload.id);
+}
+
+export default {
+  async fetch(request, env) {
+    const headers = cors(request);
+    const url = new URL(request.url);
+    const path = url.pathname.replace(/\/+$/, "") || "/";
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers });
+    }
+
+    if (url.origin === SITE && request.method !== "GET") {
+      return json({ error: "Method not allowed" }, 405, headers);
+    }
+
+    if (request.method !== "GET") {
+      return json({ error: "Method not allowed" }, 405, headers);
+    }
+
+    if (path === "/" || path === "/health") {
+      return json({
+        success: true,
+        service: "ApeBazar My Ads API",
+        status: "online"
+      }, 200, headers);
+    }
+
+    if (path !== "/api/my/ads") {
+      return json({ error: "Not found" }, 404, headers);
+    }
+
+    if (!env.DB || !env.SESSION_SECRET) {
+      return json({
+        error: "Worker configuration is incomplete"
+      }, 500, headers);
+    }
+
+    const userId = await authenticate(request, env);
+
+    if (!userId) {
+      return json({
+        error: "Please sign in again",
+        code: "UNAUTHORIZED"
+      }, 401, headers);
+    }
+
+    try {
+      const result = await env.DB.prepare(`
+        SELECT
+          a.id,
+          a.title,
+          a.description,
+          a.price_lkr,
+          a.salary_lkr,
+          a.ad_type,
+          a.website_url,
+          a.condition,
+          a.created_at,
+          a.expires_at,
+          a.status,
+          a.seller_name,
+          a.seller_phone,
+          c.name AS category,
+          d.name AS district,
+          ci.name AS city,
+          (
+            SELECT p.photo_url
+            FROM ad_photos p
+            WHERE p.ad_id = a.id
+            ORDER BY p.id
+            LIMIT 1
+          ) AS image_url
+        FROM ads a
+        LEFT JOIN categories c ON c.id = a.category_id
+        LEFT JOIN districts d ON d.id = a.district_id
+        LEFT JOIN cities ci ON ci.id = a.city_id
+        WHERE CAST(a.user_id AS TEXT) = ?
+        ORDER BY a.created_at DESC
+        LIMIT 100
+      `).bind(userId).all();
+
+      return json({
+        success: true,
+        ads: result.results || []
+      }, 200, headers);
+
+    } catch (error) {
+      console.error("My Ads database error:", error);
+      return json({
+        error: "Unable to load your ads"
+      }, 500, headers);
+    }
+  }
+};
