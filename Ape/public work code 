@@ -1,11 +1,9 @@
 
-const corsFor = (req) => {
+const corsFor = req => {
   const origin = req.headers.get("Origin") || "";
-  const allowed =
-    origin === "https://apebazar.lk" ||
+  const allowed = origin === "https://apebazar.lk" ||
     origin === "https://www.apebazar.lk" ||
     /^https:\/\/[a-z0-9-]+\.pages\.dev$/.test(origin);
-
   return {
     "Access-Control-Allow-Origin": allowed ? origin : "https://apebazar.lk",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
@@ -16,17 +14,13 @@ const corsFor = (req) => {
 
 const json = (data, status = 200, headers = {}) =>
   Response.json(data, { status, headers });
-
 const uid = () => crypto.randomUUID();
 const enc = new TextEncoder();
 
 function b64url(bytes) {
   let s = "";
   for (const b of bytes) s += String.fromCharCode(b);
-  return btoa(s)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 function unb64url(s) {
@@ -37,87 +31,68 @@ function unb64url(s) {
 
 async function signToken(payload, secret) {
   const body = b64url(enc.encode(JSON.stringify(payload)));
-
   const key = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
+    "raw", enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
   );
-
-  const sig = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    enc.encode(body)
-  );
-
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(body));
   return body + "." + b64url(new Uint8Array(sig));
 }
 
 async function getUser(req, env) {
   const auth = req.headers.get("Authorization") || "";
-
-  if (!auth.startsWith("Bearer ") || !env.SESSION_SECRET) {
-    return null;
-  }
+  if (!auth.startsWith("Bearer ") || !env.SESSION_SECRET) return null;
 
   try {
-    const token = auth.slice(7);
-    const parts = token.split(".");
-
+    const parts = auth.slice(7).split(".");
     if (parts.length !== 2) return null;
 
     const [body, signature] = parts;
-
     const key = await crypto.subtle.importKey(
-      "raw",
-      enc.encode(env.SESSION_SECRET),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["verify"]
+      "raw", enc.encode(env.SESSION_SECRET),
+      { name: "HMAC", hash: "SHA-256" }, false, ["verify"]
     );
 
-    const valid = await crypto.subtle.verify(
-      "HMAC",
-      key,
-      unb64url(signature),
-      enc.encode(body)
-    );
-
-    if (!valid) return null;
+    if (!await crypto.subtle.verify(
+      "HMAC", key, unb64url(signature), enc.encode(body)
+    )) return null;
 
     const payload = JSON.parse(
       new TextDecoder().decode(unb64url(body))
     );
 
-    if (!payload.id || !payload.exp || payload.exp <= Date.now()) {
-      return null;
-    }
+    if (!payload.id || !payload.exp || payload.exp <= Date.now()) return null;
 
-    // Always read the current role from D1.
     return await env.DB.prepare(
-      "SELECT id, email, name, role FROM users WHERE id = ?"
+      "SELECT id,email,name,role FROM users WHERE id=?"
     ).bind(payload.id).first();
-
   } catch {
     return null;
   }
 }
 
 async function readJson(req) {
-  try {
-    return await req.json();
-  } catch {
-    return null;
-  }
+  try { return await req.json(); } catch { return null; }
 }
 
 function text(value, max) {
-  return typeof value === "string"
-    ? value.trim().slice(0, max)
-    : "";
+  return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
+
+function optionalId(value) {
+  if (value === "" || value == null) return null;
+  const n = Number(value);
+  return Number.isSafeInteger(n) && n > 0 ? n : NaN;
+}
+
+function optionalMoney(value) {
+  if (value === "" || value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? n : NaN;
+}
+
+const TYPES = ["product", "service", "job", "website", "other"];
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 async function handle(req, env) {
   const url = new URL(req.url);
@@ -134,51 +109,32 @@ async function handle(req, env) {
   }
 
   try {
-    // Health check
     if (path === "/api/health" && method === "GET") {
-      return json({
-        ok: true,
-        service: "apebazar-api"
-      }, 200, headers);
+      return json({ ok: true, service: "apebazar-api" }, 200, headers);
     }
 
-    // Google login
+    // Google sign-in
     if (path === "/api/auth/google" && method === "POST") {
       if (!env.GOOGLE_CLIENT_ID || !env.SESSION_SECRET) {
-        return json({
-          error: "Authentication is not configured"
-        }, 500, headers);
+        return json({ error: "Authentication is not configured" }, 500, headers);
       }
 
       const body = await readJson(req);
       const credential = body?.credential;
 
-      if (
-        typeof credential !== "string" ||
-        credential.length > 10000
-      ) {
-        return json({
-          error: "Missing Google credential"
-        }, 400, headers);
+      if (typeof credential !== "string" || credential.length > 10000) {
+        return json({ error: "Missing Google credential" }, 400, headers);
       }
 
       const response = await fetch(
         "https://oauth2.googleapis.com/tokeninfo?id_token=" +
         encodeURIComponent(credential)
       );
-
       const g = await response.json();
 
-      if (
-        !response.ok ||
-        g.aud !== env.GOOGLE_CLIENT_ID ||
-        g.email_verified !== "true" ||
-        !g.email ||
-        !g.sub
-      ) {
-        return json({
-          error: "Invalid Google login"
-        }, 401, headers);
+      if (!response.ok || g.aud !== env.GOOGLE_CLIENT_ID ||
+          g.email_verified !== "true" || !g.email || !g.sub) {
+        return json({ error: "Invalid Google login" }, 401, headers);
       }
 
       const email = String(g.email).toLowerCase();
@@ -186,89 +142,66 @@ async function handle(req, env) {
 
       await env.DB.prepare(`
         INSERT OR IGNORE INTO users
-          (email, name, google_id, email_verified)
-        VALUES (?, ?, ?, 1)
+          (email,name,google_id,email_verified)
+        VALUES (?,?,?,1)
       `).bind(email, name, g.sub).run();
 
       await env.DB.prepare(`
-        UPDATE users
-        SET name = ?, google_id = ?, email_verified = 1
-        WHERE email = ?
+        UPDATE users SET name=?,google_id=?,email_verified=1
+        WHERE email=?
       `).bind(name, g.sub, email).run();
 
       const u = await env.DB.prepare(
-        "SELECT id, email, name, role FROM users WHERE email = ?"
+        "SELECT id,email,name,role FROM users WHERE email=?"
       ).bind(email).first();
 
-      if (!u) {
-        return json({
-          error: "Could not create account"
-        }, 500, headers);
-      }
+      if (!u) return json({ error: "Could not create account" }, 500, headers);
 
-      const session = await signToken({
+      const token = await signToken({
         id: u.id,
         exp: Date.now() + 7 * 24 * 60 * 60 * 1000
       }, env.SESSION_SECRET);
 
-      return json({
-        token: session,
-        user: u
-      }, 200, headers);
+      return json({ token, user: u }, 200, headers);
     }
 
-    // Current signed-in user
     if (path === "/api/auth/me" && method === "GET") {
       const u = await getUser(req, env);
-
       return u
         ? json({ user: u }, 200, headers)
         : json({ error: "Login required" }, 401, headers);
     }
 
-    // Categories
     if (path === "/api/categories" && method === "GET") {
       const r = await env.DB.prepare(
-        "SELECT id, name, slug FROM categories ORDER BY name"
+        "SELECT id,name,slug FROM categories ORDER BY name"
       ).all();
-
       return json(r.results, 200, headers);
     }
 
-    // Districts
     if (path === "/api/locations" && method === "GET") {
       const r = await env.DB.prepare(
-        "SELECT id, name FROM districts ORDER BY name"
+        "SELECT id,name FROM districts ORDER BY name"
       ).all();
-
       return json(r.results, 200, headers);
     }
 
-    // Cities
     if (path === "/api/cities" && method === "GET") {
       const districtId = url.searchParams.get("district_id");
-
       const r = districtId
         ? await env.DB.prepare(`
-            SELECT id, name, district_id
-            FROM cities
-            WHERE district_id = ?
-            ORDER BY name
+            SELECT id,name,district_id FROM cities
+            WHERE district_id=? ORDER BY name
           `).bind(Number(districtId)).all()
         : await env.DB.prepare(`
-            SELECT id, name, district_id
-            FROM cities
-            ORDER BY name
-            LIMIT 500
+            SELECT id,name,district_id FROM cities ORDER BY name LIMIT 500
           `).all();
-
       return json(r.results, 200, headers);
     }
 
     // Public approved listings
     if (path === "/api/listings" && method === "GET") {
       const q = url.searchParams;
-
       const search = text(q.get("search") || "", 100);
       const category = q.get("category") || "";
       const location = q.get("location") || "";
@@ -276,36 +209,21 @@ async function handle(req, env) {
       const maxRaw = q.get("maxPrice") || "";
 
       let sql = `
-        SELECT
-          a.id,
-          a.title,
-          a.description,
-          a.price_lkr,
-          a.condition,
-          a.created_at,
-          a.expires_at,
-          a.seller_name,
-          a.seller_phone,
-          c.name AS category,
-          c.slug AS category_slug,
-          d.name AS district,
-          ci.name AS city,
+        SELECT a.id,a.title,a.description,a.price_lkr,a.salary_lkr,
+          a.ad_type,a.website_url,a.condition,a.created_at,a.expires_at,
+          a.seller_name,a.seller_phone,c.name AS category,
+          c.slug AS category_slug,d.name AS district,ci.name AS city,
           (
-            SELECT p.photo_url
-            FROM ad_photos p
-            WHERE p.ad_id = a.id
-            ORDER BY p.id
-            LIMIT 1
+            SELECT p.photo_url FROM ad_photos p
+            WHERE p.ad_id=a.id ORDER BY p.id LIMIT 1
           ) AS image_url
         FROM ads a
-        LEFT JOIN categories c ON c.id = a.category_id
-        LEFT JOIN districts d ON d.id = a.district_id
-        LEFT JOIN cities ci ON ci.id = a.city_id
-        WHERE a.status = 'APPROVED'
-          AND COALESCE(
-            a.expires_at,
-            datetime(a.created_at, '+30 days')
-          ) > datetime('now')
+        LEFT JOIN categories c ON c.id=a.category_id
+        LEFT JOIN districts d ON d.id=a.district_id
+        LEFT JOIN cities ci ON ci.id=a.city_id
+        WHERE a.status='APPROVED'
+          AND COALESCE(a.expires_at,datetime(a.created_at,'+30 days'))
+              > datetime('now')
       `;
 
       const args = [];
@@ -314,65 +232,44 @@ async function handle(req, env) {
         sql += " AND (a.title LIKE ? OR a.description LIKE ?)";
         args.push("%" + search + "%", "%" + search + "%");
       }
-
       if (category) {
-        sql += " AND (c.slug = ? OR CAST(c.id AS TEXT) = ?)";
+        sql += " AND (c.slug=? OR CAST(c.id AS TEXT)=?)";
         args.push(category, category);
       }
-
       if (location) {
-        sql += " AND (d.name = ? OR CAST(d.id AS TEXT) = ?)";
+        sql += " AND (d.name=? OR CAST(d.id AS TEXT)=?)";
         args.push(location, location);
       }
-
-      if (
-        minRaw !== "" &&
-        Number.isFinite(Number(minRaw)) &&
-        Number(minRaw) >= 0
-      ) {
-        sql += " AND a.price_lkr >= ?";
+      if (minRaw !== "" && Number.isFinite(Number(minRaw)) &&
+          Number(minRaw) >= 0) {
+        sql += " AND a.price_lkr>=?";
         args.push(Number(minRaw));
       }
-
-      if (
-        maxRaw !== "" &&
-        Number.isFinite(Number(maxRaw)) &&
-        Number(maxRaw) >= 0
-      ) {
-        sql += " AND a.price_lkr <= ?";
+      if (maxRaw !== "" && Number.isFinite(Number(maxRaw)) &&
+          Number(maxRaw) >= 0) {
+        sql += " AND a.price_lkr<=?";
         args.push(Number(maxRaw));
       }
 
       sql += " ORDER BY a.created_at DESC LIMIT 100";
-
       const r = await env.DB.prepare(sql).bind(...args).all();
-
       return json(r.results, 200, headers);
     }
 
-    // Upload ad image to R2
+    // Upload photo
     if (path === "/api/upload" && method === "POST") {
       if (!env.MEDIA) {
-        return json({
-          error: "R2 binding MEDIA is missing"
-        }, 500, headers);
+        return json({ error: "R2 binding MEDIA is missing" }, 500, headers);
       }
 
       const u = await getUser(req, env);
-
-      if (!u) {
-        return json({ error: "Login required" }, 401, headers);
-      }
+      if (!u) return json({ error: "Login required" }, 401, headers);
 
       const form = await req.formData();
       const f = form.get("file");
 
-      if (
-        !f ||
-        typeof f.stream !== "function" ||
-        !/^image\/(jpeg|png|webp|gif)$/.test(f.type) ||
-        f.size > 5 * 1024 * 1024
-      ) {
+      if (!f || typeof f.stream !== "function" ||
+          !IMAGE_TYPES.includes(f.type) || f.size > 5 * 1024 * 1024) {
         return json({
           error: "Use JPG, PNG, WEBP or GIF under 5 MB"
         }, 400, headers);
@@ -391,14 +288,11 @@ async function handle(req, env) {
       }, 201, headers);
     }
 
-    // Serve ad image
+    // Serve uploaded photos
     if (path.startsWith("/api/media/") && method === "GET") {
-      if (!env.MEDIA) {
-        return new Response("Storage unavailable", { status: 500 });
-      }
+      if (!env.MEDIA) return new Response("Storage unavailable", { status: 500 });
 
       let key;
-
       try {
         key = decodeURIComponent(path.slice("/api/media/".length));
       } catch {
@@ -410,106 +304,114 @@ async function handle(req, env) {
       }
 
       const obj = await env.MEDIA.get(key);
-
-      if (!obj) {
-        return new Response("Not found", { status: 404 });
-      }
+      if (!obj) return new Response("Not found", { status: 404 });
 
       return new Response(obj.body, {
         headers: {
           ...headers,
-          "Content-Type":
-            obj.httpMetadata?.contentType || "application/octet-stream",
+          "Content-Type": obj.httpMetadata?.contentType || "application/octet-stream",
           "Cache-Control": "public, max-age=86400",
           "X-Content-Type-Options": "nosniff"
         }
       });
     }
 
-    // Submit a free advertisement
+    // Submit a free ad
     if (path === "/api/ads" && method === "POST") {
       const u = await getUser(req, env);
-
-      if (!u) {
-        return json({ error: "Login required" }, 401, headers);
+      if (!u) return json({ error: "Login required" }, 401, headers);
+      if (!env.MEDIA) {
+        return json({ error: "R2 binding MEDIA is missing" }, 500, headers);
       }
 
       const a = await readJson(req);
-
-      if (!a || typeof a !== "object") {
-        return json({
-          error: "Invalid request body"
-        }, 400, headers);
+      if (!a || typeof a !== "object" || Array.isArray(a)) {
+        return json({ error: "Invalid request body" }, 400, headers);
       }
 
       const title = text(a.title, 100);
       const description = text(a.description, 2000);
-      const categoryId = Number(a.category_id);
-      const districtId = Number(a.district_id);
-      const cityId = a.city_id ? Number(a.city_id) : null;
-
-      const price =
-        a.price_lkr === "" || a.price_lkr == null
-          ? 0
-          : Number(a.price_lkr);
-
-      const sellerName = text(
-        a.seller_name || u.name || u.email,
-        100
-      );
-
+      const adType = TYPES.includes(a.ad_type) ? a.ad_type : "product";
+      const categoryId = optionalId(a.category_id);
+      const districtId = optionalId(a.district_id);
+      const cityId = optionalId(a.city_id);
+      const price = optionalMoney(a.price_lkr);
+      const salary = optionalMoney(a.salary_lkr);
+      const website = text(a.website_url, 500);
+      const condition = text(a.condition, 30);
+      const sellerName = text(a.seller_name || u.name || u.email, 100);
       const sellerPhone = text(a.seller_phone, 30);
-      const condition = text(a.condition || "Used", 30);
+      const photos = Array.isArray(a.photos) ? a.photos.slice(0, 5) : [];
 
-      if (
-        title.length < 3 ||
-        !description ||
-        !Number.isInteger(categoryId) ||
-        !Number.isInteger(districtId) ||
-        !Number.isFinite(price) ||
-        price < 0 ||
-        (cityId !== null && !Number.isInteger(cityId))
-      ) {
-        return json({
-          error: "Complete all required fields correctly"
-        }, 400, headers);
+      if (title.length < 3) {
+        return json({ error: "Title must contain at least 3 characters" }, 400, headers);
       }
-
-      const [category, district] = await Promise.all([
-        env.DB.prepare(
-          "SELECT id FROM categories WHERE id = ?"
-        ).bind(categoryId).first(),
-
-        env.DB.prepare(
-          "SELECT id FROM districts WHERE id = ?"
-        ).bind(districtId).first()
-      ]);
-
-      if (!category || !district) {
-        return json({
-          error: "Invalid category or district"
-        }, 400, headers);
+      if (photos.length < 1) {
+        return json({ error: "Upload at least one photo" }, 400, headers);
       }
-
-      if (cityId !== null) {
-        const city = await env.DB.prepare(`
-          SELECT id
-          FROM cities
-          WHERE id = ? AND district_id = ?
-        `).bind(cityId, districtId).first();
-
-        if (!city) {
-          return json({ error: "Invalid city" }, 400, headers);
+      if (categoryId !== null && !Number.isSafeInteger(categoryId)) {
+        return json({ error: "Invalid category" }, 400, headers);
+      }
+      if (districtId !== null && !Number.isSafeInteger(districtId)) {
+        return json({ error: "Invalid district" }, 400, headers);
+      }
+      if (cityId !== null && !Number.isSafeInteger(cityId)) {
+        return json({ error: "Invalid city" }, 400, headers);
+      }
+      if (Number.isNaN(price) || Number.isNaN(salary)) {
+        return json({ error: "Price and salary must be zero or greater" }, 400, headers);
+      }
+      if (website) {
+        try {
+          const parsed = new URL(website);
+          if (!["https:", "http:"].includes(parsed.protocol)) throw Error();
+        } catch {
+          return json({ error: "Enter a valid HTTP or HTTPS website URL" }, 400, headers);
         }
       }
 
-      // Maximum 5 submissions per day, Sri Lanka time.
+      if (categoryId !== null) {
+        const category = await env.DB.prepare(
+          "SELECT id FROM categories WHERE id=?"
+        ).bind(categoryId).first();
+        if (!category) return json({ error: "Invalid category" }, 400, headers);
+      }
+
+      if (districtId !== null) {
+        const district = await env.DB.prepare(
+          "SELECT id FROM districts WHERE id=?"
+        ).bind(districtId).first();
+        if (!district) return json({ error: "Invalid district" }, 400, headers);
+      }
+
+      if (cityId !== null) {
+        if (districtId === null) {
+          return json({ error: "Choose a district before selecting a city" }, 400, headers);
+        }
+        const city = await env.DB.prepare(`
+          SELECT id FROM cities WHERE id=? AND district_id=?
+        `).bind(cityId, districtId).first();
+        if (!city) return json({ error: "Invalid city" }, 400, headers);
+      }
+
+      // Validate all uploaded photo keys before creating the ad.
+      const validPhotos = [];
+      for (const key of photos) {
+        if (typeof key !== "string" ||
+            !key.startsWith(`ads/${u.id}/`) || key.includes("..")) {
+          return json({ error: "Invalid uploaded photo" }, 400, headers);
+        }
+        const obj = await env.MEDIA.head(key);
+        if (!obj) return json({ error: "An uploaded photo could not be found" }, 400, headers);
+        validPhotos.push(key);
+      }
+
+      // Maximum 5 submissions per day in Sri Lanka time.
       const daily = await env.DB.prepare(`
-        SELECT COUNT(*) AS total
-        FROM ads
-        WHERE user_id = ?
-          AND date(created_at, '+5 hours 30 minutes')
-              = date('now', '+5 hours 30 minutes')
+        SELECT COUNT(*) AS total FROM ads
+        WHERE user_id=?
+          AND date(created_at,'+5 hours 30 minutes')
+              = date('now','+5 hours 30 minutes')
       `).bind(u.id).first();
 
       if (Number(daily?.total || 0) >= 5) {
@@ -518,16 +420,11 @@ async function handle(req, env) {
         }, 429, headers);
       }
 
-      // Maximum 15 currently approved, unexpired ads per user.
+      // Maximum 15 currently approved ads per user.
       const active = await env.DB.prepare(`
-        SELECT COUNT(*) AS total
-        FROM ads
-        WHERE user_id = ?
-          AND status = 'APPROVED'
-          AND COALESCE(
-            expires_at,
-            datetime(created_at, '+30 days')
-          ) > datetime('now')
+        SELECT COUNT(*) AS total FROM ads
+        WHERE user_id=? AND status='APPROVED'
+          AND COALESCE(expires_at,datetime(created_at,'+30 days'))>datetime('now')
       `).bind(u.id).first();
 
       if (Number(active?.total || 0) >= 15) {
@@ -536,57 +433,40 @@ async function handle(req, env) {
         }, 429, headers);
       }
 
+      // price_lkr is stored as 0 when omitted for compatibility with
+      // schemas where price_lkr is NOT NULL.
+      const storedPrice = price === null ? 0 : price;
+
       const result = await env.DB.prepare(`
         INSERT INTO ads (
-          user_id,
-          category_id,
-          district_id,
-          city_id,
-          title,
-          description,
-          price_lkr,
-          condition,
-          seller_name,
-          seller_phone,
-          status,
-          expires_at
+          user_id,category_id,district_id,city_id,title,description,
+          price_lkr,condition,seller_name,seller_phone,status,expires_at,
+          ad_type,website_url,salary_lkr
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING',
-                datetime('now', '+30 days'))
+        VALUES (?,?,?,?,?,?,?,?,?,?,'PENDING',
+          datetime('now','+30 days'),?,?,?)
       `).bind(
         u.id,
         categoryId,
         districtId,
         cityId,
         title,
-        description,
-        price,
-        condition,
-        sellerName,
-        sellerPhone
+        description || null,
+        storedPrice,
+        condition || null,
+        sellerName || null,
+        sellerPhone || null,
+        adType,
+        website || null,
+        adType === "job" ? salary : null
       ).run();
 
       const adId = result.meta.last_row_id;
-      const photos = Array.isArray(a.photos)
-        ? a.photos.slice(0, 5)
-        : [];
 
-      for (const key of photos) {
-        if (
-          typeof key !== "string" ||
-          !key.startsWith(`ads/${u.id}/`) ||
-          key.includes("..")
-        ) {
-          continue;
-        }
-
-        const obj = env.MEDIA ? await env.MEDIA.head(key) : null;
-
-        if (!obj) continue;
-
+      for (const key of validPhotos) {
         await env.DB.prepare(`
-          INSERT INTO ad_photos (ad_id, photo_url, r2_key)
-          VALUES (?, ?, ?)
+          INSERT INTO ad_photos (ad_id,photo_url,r2_key)
+          VALUES (?,?,?)
         `).bind(
           adId,
           `${url.origin}/api/media/${key}`,
@@ -604,21 +484,13 @@ async function handle(req, env) {
     }
 
     // Admin: approve or reject an ad.
-    const adminMatch = path.match(
-      /^\/api\/admin\/ads\/(\d+)\/status$/
-    );
+    const adminMatch = path.match(/^\/api\/admin\/ads\/(\d+)\/status$/);
 
     if (adminMatch && method === "PATCH") {
       const u = await getUser(req, env);
-
-      if (!u) {
-        return json({ error: "Login required" }, 401, headers);
-      }
-
+      if (!u) return json({ error: "Login required" }, 401, headers);
       if (u.role !== "admin") {
-        return json({
-          error: "Admin access required"
-        }, 403, headers);
+        return json({ error: "Admin access required" }, 403, headers);
       }
 
       const body = await readJson(req);
@@ -626,37 +498,24 @@ async function handle(req, env) {
       const status = body?.status;
 
       if (!["APPROVED", "REJECTED"].includes(status)) {
-        return json({
-          error: "Status must be APPROVED or REJECTED"
-        }, 400, headers);
+        return json({ error: "Status must be APPROVED or REJECTED" }, 400, headers);
       }
 
       const ad = await env.DB.prepare(`
-        SELECT id, user_id, status, expires_at, created_at
-        FROM ads
-        WHERE id = ?
+        SELECT id,user_id,status,expires_at,created_at
+        FROM ads WHERE id=?
       `).bind(adId).first();
 
-      if (!ad) {
-        return json({ error: "Ad not found" }, 404, headers);
-      }
-
+      if (!ad) return json({ error: "Ad not found" }, 404, headers);
       if (ad.status !== "PENDING") {
-        return json({
-          error: "Only pending ads can be reviewed"
-        }, 409, headers);
+        return json({ error: "Only pending ads can be reviewed" }, 409, headers);
       }
 
       if (status === "APPROVED") {
         const active = await env.DB.prepare(`
-          SELECT COUNT(*) AS total
-          FROM ads
-          WHERE user_id = ?
-            AND status = 'APPROVED'
-            AND COALESCE(
-              expires_at,
-              datetime(created_at, '+30 days')
-            ) > datetime('now')
+          SELECT COUNT(*) AS total FROM ads
+          WHERE user_id=? AND status='APPROVED'
+            AND COALESCE(expires_at,datetime(created_at,'+30 days'))>datetime('now')
         `).bind(ad.user_id).first();
 
         if (Number(active?.total || 0) >= 15) {
@@ -665,38 +524,24 @@ async function handle(req, env) {
           }, 409, headers);
         }
 
-        if (
-          ad.expires_at &&
-          ad.expires_at <=
-            new Date().toISOString().replace("T", " ").slice(0, 19)
-        ) {
-          return json({
-            error: "This ad has expired and cannot be approved"
-          }, 409, headers);
+        if (ad.expires_at &&
+            ad.expires_at <= new Date().toISOString().replace("T", " ").slice(0, 19)) {
+          return json({ error: "This ad has expired and cannot be approved" }, 409, headers);
         }
       }
 
       await env.DB.prepare(`
-        UPDATE ads
-        SET status = ?
-        WHERE id = ? AND status = 'PENDING'
+        UPDATE ads SET status=? WHERE id=? AND status='PENDING'
       `).bind(status, adId).run();
 
-      return json({
-        success: true,
-        id: adId,
-        status
-      }, 200, headers);
+      return json({ success: true, id: adId, status }, 200, headers);
     }
 
     return json({ error: "Route not found" }, 404, headers);
 
   } catch (e) {
     console.error("ApeBazar API error:", e);
-
-    return json({
-      error: "Server error"
-    }, 500, headers);
+    return json({ error: "Server error" }, 500, headers);
   }
 }
 
@@ -705,28 +550,19 @@ export default {
     const headers = corsFor(req);
     const origin = req.headers.get("Origin");
 
-    // Reject browser requests from unapproved origins.
-    if (
-      origin &&
-      headers["Access-Control-Allow-Origin"] !== origin
-    ) {
+    if (origin && headers["Access-Control-Allow-Origin"] !== origin) {
       return json({ error: "Origin not allowed" }, 403, headers);
     }
 
     return handle(req, env);
   },
 
-  // Optional daily cleanup. Configure a daily Cron Trigger.
   async scheduled(controller, env, ctx) {
     ctx.waitUntil((async () => {
       await env.DB.prepare(`
-        UPDATE ads
-        SET status = 'EXPIRED'
-        WHERE status = 'APPROVED'
-          AND COALESCE(
-            expires_at,
-            datetime(created_at, '+30 days')
-          ) <= datetime('now')
+        UPDATE ads SET status='EXPIRED'
+        WHERE status='APPROVED'
+          AND COALESCE(expires_at,datetime(created_at,'+30 days'))<=datetime('now')
       `).run();
     })());
   }
