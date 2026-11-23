@@ -149,6 +149,10 @@ textarea {min-height:100px;resize:vertical}
   border-radius:8px;
   display:none;
 }
+select:disabled {
+  background:#f0f2f5;
+  cursor:wait;
+}
 @media(max-width:650px) {
   main {padding:10px}
   .panel {padding:13px}
@@ -243,18 +247,32 @@ textarea {min-height:100px;resize:vertical}
 
       <div class="grid">
         <div>
-          <label for="category">Category</label>
-          <input id="category" placeholder="e.g. Electronics">
+          <label for="category">Category *</label>
+          <select id="category" required disabled>
+            <option value="">Sign in to load categories</option>
+          </select>
         </div>
 
         <div>
-          <label for="district">District</label>
-          <input id="district" placeholder="e.g. Colombo">
+          <label for="district">District *</label>
+          <select id="district" required disabled>
+            <option value="">Sign in to load districts</option>
+          </select>
         </div>
       </div>
 
-      <label for="city">City</label>
-      <input id="city" placeholder="e.g. Negombo">
+      <label for="city">City *</label>
+      <select id="city" required disabled>
+        <option value="">Select district first</option>
+      </select>
+
+      <p id="locationStatus" class="small" aria-live="polite">
+        Category and location data will load after login.
+      </p>
+
+      <button type="button" onclick="loadLocationData()">
+        🔄 Reload Categories and Locations
+      </button>
 
       <label for="price">Price (LKR)</label>
       <input id="price" type="number" min="0" step="0.01" value="0">
@@ -302,6 +320,8 @@ textarea {min-height:100px;resize:vertical}
 <script>
 "use strict";
 
+/* API CONFIGURATION */
+
 const API = "https://apebazar-admin-api.createlk.workers.dev";
 
 const GOOGLE_CLIENT_ID =
@@ -320,6 +340,10 @@ const PRICES = {
 let authToken = sessionStorage.getItem("apebazar_admin_token") || "";
 let me = null;
 let googleInitialized = false;
+let categoriesLoaded = false;
+let districtsLoaded = false;
+let citiesDistrictLoaded = null;
+let locationRequestId = 0;
 
 const $ = id => document.getElementById(id);
 
@@ -333,6 +357,8 @@ const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({
 
 const money = value =>
   "LKR " + Number(value || 0).toLocaleString("en-LK");
+
+/* NOTICE */
 
 function notice(message, error=false) {
   const el = $("notice");
@@ -397,6 +423,10 @@ function loginSuccess(result) {
   $("loginError").textContent = "";
 
   showPage("ads");
+
+  loadLocationData().catch(error => {
+    $("locationStatus").textContent = error.message;
+  });
 }
 
 async function googleCredential(response) {
@@ -458,6 +488,22 @@ function logout(message="") {
   $("adList").innerHTML = "";
   $("loginError").textContent = message;
 
+  categoriesLoaded = false;
+  districtsLoaded = false;
+  citiesDistrictLoaded = null;
+  locationRequestId++;
+
+  $("category").innerHTML =
+    '<option value="">Sign in to load categories</option>';
+  $("district").innerHTML =
+    '<option value="">Sign in to load districts</option>';
+  $("city").innerHTML =
+    '<option value="">Select district first</option>';
+
+  $("category").disabled = true;
+  $("district").disabled = true;
+  $("city").disabled = true;
+
   if(window.google?.accounts?.id) {
     google.accounts.id.disableAutoSelect();
   }
@@ -475,7 +521,193 @@ function showPage(page) {
   if(page === "ads") {
     loadAds().catch(error => notice(error.message,true));
   }
+
+  if(page === "post") {
+    if(!categoriesLoaded || !districtsLoaded) {
+      loadLocationData().catch(error => notice(error.message,true));
+    }
+  }
 }
+
+/* AUTOMATIC DATABASE DROPDOWNS */
+
+function fillDropdown(select, items, placeholder) {
+  select.innerHTML = "";
+
+  const first = document.createElement("option");
+  first.value = "";
+  first.textContent = placeholder;
+  select.appendChild(first);
+
+  items.forEach(item => {
+    const option = document.createElement("option");
+    option.value = String(item.id);
+    option.textContent = item.name;
+    select.appendChild(option);
+  });
+}
+
+async function loadCategories() {
+  const select = $("category");
+
+  select.disabled = true;
+  select.innerHTML = "<option value=''>Loading categories...</option>";
+
+  try {
+    const result = await api("/api/admin/categories");
+
+    if(!result.success) {
+      throw Error("Could not load categories.");
+    }
+
+    fillDropdown(
+      select,
+      result.categories || [],
+      "Select category"
+    );
+
+    categoriesLoaded = true;
+
+    if(!result.categories?.length) {
+      select.innerHTML =
+        '<option value="">No categories available</option>';
+    }
+
+  } catch(error) {
+    categoriesLoaded = false;
+    select.innerHTML =
+      '<option value="">Failed to load categories</option>';
+    throw error;
+
+  } finally {
+    select.disabled = false;
+  }
+}
+
+async function loadDistricts() {
+  const select = $("district");
+
+  select.disabled = true;
+  select.innerHTML = "<option value=''>Loading districts...</option>";
+
+  try {
+    const result = await api("/api/admin/districts");
+
+    if(!result.success) {
+      throw Error("Could not load districts.");
+    }
+
+    fillDropdown(
+      select,
+      result.districts || [],
+      "Select district"
+    );
+
+    districtsLoaded = true;
+
+    if(!result.districts?.length) {
+      select.innerHTML =
+        '<option value="">No districts available</option>';
+    }
+
+  } catch(error) {
+    districtsLoaded = false;
+    select.innerHTML =
+      '<option value="">Failed to load districts</option>';
+    throw error;
+
+  } finally {
+    select.disabled = false;
+  }
+}
+
+async function loadCities(districtId) {
+  const select = $("city");
+  const status = $("locationStatus");
+  const requestId = ++locationRequestId;
+
+  citiesDistrictLoaded = null;
+  select.disabled = true;
+
+  if(!districtId) {
+    fillDropdown(select, [], "Select district first");
+    status.textContent = "";
+    return;
+  }
+
+  select.innerHTML = "<option value=''>Loading cities...</option>";
+  status.textContent = "Loading cities...";
+
+  try {
+    const result = await api(
+      "/api/admin/cities?district_id=" +
+      encodeURIComponent(districtId)
+    );
+
+    // Ignore old responses if the district changed again.
+    if(requestId !== locationRequestId) return;
+
+    if(!result.success) {
+      throw Error("Could not load cities.");
+    }
+
+    fillDropdown(
+      select,
+      result.cities || [],
+      "Select city"
+    );
+
+    citiesDistrictLoaded = String(districtId);
+
+    status.textContent = result.cities?.length
+      ? result.cities.length + " cities loaded."
+      : "No cities found for this district.";
+
+  } catch(error) {
+    if(requestId !== locationRequestId) return;
+
+    select.innerHTML =
+      '<option value="">Failed to load cities</option>';
+    status.textContent = error.message;
+    throw error;
+
+  } finally {
+    if(requestId === locationRequestId) {
+      select.disabled = false;
+    }
+  }
+}
+
+async function loadLocationData() {
+  $("locationStatus").textContent =
+    "Loading categories and districts...";
+
+  try {
+    await Promise.all([
+      loadCategories(),
+      loadDistricts()
+    ]);
+
+    $("locationStatus").textContent =
+      "Categories and districts loaded. Select a district to load its cities.";
+
+  } catch(error) {
+    $("locationStatus").textContent =
+      "Could not load database data: " + error.message;
+
+    throw error;
+  }
+}
+
+/* DISTRICT CHANGE */
+
+$("district").addEventListener("change", async () => {
+  try {
+    await loadCities($("district").value);
+  } catch(error) {
+    notice(error.message,true);
+  }
+});
 
 /* PROMOTION PRICE */
 
@@ -486,6 +718,8 @@ function updatePrice() {
   $("promotionPrice").textContent =
     "Promotion: " + label + " · " + money(price);
 }
+
+/* IMAGE PREVIEW */
 
 function previewImage() {
   const url = $("image").value.trim();
@@ -503,7 +737,21 @@ function previewImage() {
 function resetPreview() {
   $("imagePreview").style.display = "none";
   $("imagePreview").removeAttribute("src");
-  setTimeout(updatePrice,0);
+
+  $("city").innerHTML =
+    '<option value="">Select district first</option>';
+  $("city").disabled = true;
+
+  citiesDistrictLoaded = null;
+
+  setTimeout(() => {
+    updatePrice();
+    if($("district").value) {
+      loadCities($("district").value).catch(error =>
+        notice(error.message,true)
+      );
+    }
+  },0);
 }
 
 /* POST ADVERTISEMENT */
@@ -513,12 +761,44 @@ async function postAd(event) {
 
   const button = $("submitBtn");
 
+  const categorySelect = $("category");
+  const districtSelect = $("district");
+  const citySelect = $("city");
+
+  if(!categoriesLoaded || !districtsLoaded) {
+    notice("Please load categories and districts first.",true);
+    return;
+  }
+
+  if(!categorySelect.value) {
+    notice("Please select a category.",true);
+    return;
+  }
+
+  if(!districtSelect.value) {
+    notice("Please select a district.",true);
+    return;
+  }
+
+  if(!citySelect.value) {
+    notice("Please select a city.",true);
+    return;
+  }
+
+  if(citiesDistrictLoaded !== districtSelect.value) {
+    notice("Please wait for the correct city list to load.",true);
+    return;
+  }
+
   const data = {
     title:$("title").value.trim(),
     description:$("description").value.trim(),
-    category:$("category").value.trim(),
-    district:$("district").value.trim(),
-    city:$("city").value.trim(),
+
+    // Existing Worker stores these as text.
+    category:categorySelect.selectedOptions[0].textContent,
+    district:districtSelect.selectedOptions[0].textContent,
+    city:citySelect.selectedOptions[0].textContent,
+
     price_lkr:Number($("price").value || 0),
     image_url:$("image").value.trim(),
     promotion_label:$("promotion").value
@@ -541,7 +821,10 @@ async function postAd(event) {
 
   if(!confirm(
     "Publish this advertisement immediately?\n\n" +
-    "Promotion: " + data.promotion_label +
+    "Category: " + data.category +
+    "\nDistrict: " + data.district +
+    "\nCity: " + data.city +
+    "\nPromotion: " + data.promotion_label +
     "\nDuration: 90 days"
   )) return;
 
@@ -560,7 +843,14 @@ async function postAd(event) {
 
     $("adForm").reset();
     $("imagePreview").style.display = "none";
+    $("imagePreview").removeAttribute("src");
+
     updatePrice();
+
+    $("city").innerHTML =
+      '<option value="">Select district first</option>';
+    $("city").disabled = true;
+    citiesDistrictLoaded = null;
 
     showPage("ads");
 
