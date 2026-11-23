@@ -5,134 +5,156 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#102a56">
-<title>ApeBazar.lk Admin - Advertisements</title>
+<title>ApeBazar.lk Admin</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <style>
-:root{
+:root {
   --navy:#102a56;
   --gold:#f4bd35;
   --bg:#f3f6fb;
+  --green:#16803c;
+  --red:#b42318;
 }
-*{box-sizing:border-box}
-body{
+* {box-sizing:border-box}
+body {
   margin:0;
   font:15px Arial,sans-serif;
   background:var(--bg);
   color:#18243a;
 }
-header{
+header {
   background:var(--navy);
   color:white;
-  padding:18px;
+  padding:17px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  gap:10px;
   flex-wrap:wrap;
+  gap:10px;
 }
-header strong{font-size:21px}
-button,select,input,textarea{
+header strong {font-size:21px}
+button,input,select,textarea {
   font:inherit;
-  padding:10px;
-  border:1px solid #d6dce7;
+  padding:11px;
   border-radius:8px;
+  border:1px solid #d6dce7;
 }
-button{
+button {
   cursor:pointer;
   background:var(--navy);
   color:white;
   border:0;
   font-weight:bold;
 }
-button.gold{background:var(--gold);color:#102a56}
-button.red{background:#b42318}
-button.green{background:#16803c}
-button:disabled{opacity:.5;cursor:not-allowed}
-nav{
-  display:flex;
-  gap:7px;
-  padding:12px;
+button.gold {background:var(--gold);color:var(--navy)}
+button.green {background:var(--green)}
+button.red {background:var(--red)}
+button:disabled {opacity:.5;cursor:not-allowed}
+nav {
   background:white;
+  padding:12px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  border-bottom:1px solid #e5eaf2;
 }
-main{
-  max-width:1250px;
+nav button.active {background:var(--gold);color:var(--navy)}
+main {
+  max-width:1200px;
   margin:auto;
   padding:18px;
 }
-.panel{
+.panel {
   background:white;
+  padding:18px;
   border-radius:12px;
-  padding:16px;
-  margin-bottom:15px;
+  margin-bottom:16px;
   box-shadow:0 2px 8px #102a5610;
 }
-h2{margin-top:0;color:var(--navy)}
-h3{color:var(--navy)}
-input,select,textarea{
+h2,h3 {color:var(--navy)}
+h2 {margin-top:0}
+label {
+  display:block;
+  font-size:13px;
+  font-weight:bold;
+  margin-top:10px;
+}
+input,select,textarea {
+  display:block;
   width:100%;
   margin:5px 0 10px;
   background:white;
 }
-textarea{min-height:85px}
-label{
-  font-size:13px;
+textarea {min-height:100px;resize:vertical}
+.item {
+  border:1px solid #e1e6ef;
+  padding:14px;
+  border-radius:10px;
+  margin:12px 0;
+  background:white;
+  overflow-wrap:anywhere;
+}
+.item p {white-space:pre-wrap}
+.actions {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:12px;
+}
+.badge {
+  display:inline-block;
+  background:#fff0c2;
+  color:#745200;
+  padding:5px 9px;
+  border-radius:20px;
+  font-size:12px;
   font-weight:bold;
 }
-.item{
-  border:1px solid #e1e6ef;
-  border-radius:10px;
-  padding:13px;
-  margin:10px 0;
-  overflow-wrap:anywhere;
-  background:white;
-}
-.item p{white-space:pre-wrap}
-.actions{
-  display:flex;
-  flex-wrap:wrap;
-  gap:7px;
-  margin-top:10px;
-}
-.small{font-size:12px;color:#65738a}
-#notice{
+.small {font-size:12px;color:#65738a}
+#notice {
+  display:none;
   padding:12px;
   border-radius:8px;
-  margin:12px 0;
-  display:none;
+  margin-bottom:15px;
   overflow-wrap:anywhere;
 }
-#login{
+#login {
   max-width:430px;
   margin:65px auto;
   text-align:center;
 }
-.hidden{display:none!important}
-.badge{
-  display:inline-block;
-  background:#fff0c2;
-  color:#745200;
-  padding:4px 8px;
-  border-radius:20px;
-  font-size:12px;
-}
-#googleButton{
+#googleButton {
   display:flex;
   justify-content:center;
-  min-height:42px;
   margin:20px auto;
+  min-height:42px;
 }
-.status{
-  padding:12px;
-  border-radius:8px;
-  background:#eef4ff;
+.hidden {display:none!important}
+.grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.price-box {
+  padding:13px;
+  background:#fff8e5;
+  border-radius:9px;
   margin:12px 0;
 }
-@media(max-width:600px){
-  header strong{font-size:18px}
-  main{padding:10px}
-  .panel{padding:12px}
-  button{max-width:100%}
+.preview {
+  max-width:180px;
+  max-height:130px;
+  object-fit:contain;
+  border-radius:8px;
+  display:none;
+}
+@media(max-width:650px) {
+  main {padding:10px}
+  .panel {padding:13px}
+  .grid {grid-template-columns:1fr}
+  header strong {font-size:18px}
+  nav button {flex:1}
 }
 </style>
 </head>
@@ -147,53 +169,134 @@ label{
   </div>
 </header>
 
-<!-- GOOGLE ADMIN LOGIN -->
+<!-- LOGIN -->
+
 <section id="login" class="panel">
   <h2>Administrator Login</h2>
-  <p>Sign in with an authorized Google account.</p>
-
+  <p>Sign in with your authorized Google account.</p>
   <div id="googleButton"></div>
-
-  <p class="small">
-    Only authorized administrator accounts can access this panel.
-  </p>
-  <div id="loginError" class="small" role="alert"></div>
+  <p class="small">Only authorized administrators can access this panel.</p>
+  <p id="loginError" role="alert" class="small"></p>
 </section>
 
-<!-- ADMIN PANEL: ADVERTISEMENTS ONLY -->
+<!-- ADMIN APP -->
+
 <div id="app" class="hidden">
 
-  <nav id="nav">
-    <button onclick="show('ads')">📢 Advertisements</button>
-  </nav>
+<nav>
+  <button id="navAds" class="active" onclick="showPage('ads')">
+    📢 Advertisements
+  </button>
 
-  <main>
-    <div id="notice" role="status" aria-live="polite"></div>
+  <button id="navPost" onclick="showPage('post')">
+    ➕ Post Advertisement
+  </button>
+</nav>
 
-    <section id="ads" class="page">
-      <div class="panel">
-        <h2>📢 Advertisements</h2>
-        <p class="small">
-          Review, edit, approve, or reject submitted advertisements.
-        </p>
+<main>
 
-        <label for="adFilter">Filter Advertisements</label>
-        <select id="adFilter" onchange="loadAds()">
-          <option value="PENDING">Pending</option>
-          <option value="APPROVED">Approved</option>
-          <option value="REJECTED">Rejected</option>
-          <option value="ALL">All Advertisements</option>
-        </select>
+<div id="notice" role="status" aria-live="polite"></div>
 
-        <button onclick="loadAds()">🔄 Refresh Advertisements</button>
+<!-- ADVERTISEMENT LIST -->
 
-        <div id="adList">
-          Loading advertisements…
+<section id="adsPage" class="page">
+
+  <div class="panel">
+    <h2>📢 Advertisements</h2>
+    <p class="small">View advertisements created through this admin panel.</p>
+
+    <label>Filter</label>
+    <select id="adFilter" onchange="loadAds()">
+      <option value="ALL">All Advertisements</option>
+      <option value="APPROVED">Approved</option>
+      <option value="EXPIRED">Expired</option>
+    </select>
+
+    <button onclick="loadAds()">🔄 Refresh</button>
+
+    <div id="adList">Loading advertisements…</div>
+  </div>
+
+</section>
+
+<!-- POST ADVERTISEMENT -->
+
+<section id="postPage" class="page hidden">
+
+  <div class="panel">
+    <h2>➕ Post New Advertisement</h2>
+
+    <p class="small">
+      Admin-created advertisements are published immediately.
+      Advertisement duration: 90 days.
+    </p>
+
+    <form id="adForm" onsubmit="postAd(event)">
+
+      <label for="title">Advertisement Title *</label>
+      <input id="title" maxlength="200" required
+        placeholder="Enter advertisement title">
+
+      <label for="description">Description</label>
+      <textarea id="description" maxlength="10000"
+        placeholder="Enter advertisement details"></textarea>
+
+      <div class="grid">
+        <div>
+          <label for="category">Category</label>
+          <input id="category" placeholder="e.g. Electronics">
+        </div>
+
+        <div>
+          <label for="district">District</label>
+          <input id="district" placeholder="e.g. Colombo">
         </div>
       </div>
-    </section>
 
-  </main>
+      <label for="city">City</label>
+      <input id="city" placeholder="e.g. Negombo">
+
+      <label for="price">Price (LKR)</label>
+      <input id="price" type="number" min="0" step="0.01" value="0">
+
+      <label for="image">Image URL (HTTPS)</label>
+      <input id="image" type="url"
+        placeholder="https://example.com/image.jpg"
+        oninput="previewImage()">
+
+      <img id="imagePreview" class="preview" alt="Image preview">
+
+      <label for="promotion">Promotion Label *</label>
+      <select id="promotion" onchange="updatePrice()" required>
+        <option value="FREE">FREE - LKR 0</option>
+        <option value="URGENT">URGENT - LKR 250</option>
+        <option value="FEATURED">FEATURED - LKR 400</option>
+        <option value="TOP AD">TOP AD - LKR 600</option>
+        <option value="PREMIUM">PREMIUM - LKR 900</option>
+        <option value="SPOTLIGHT">SPOTLIGHT - LKR 1,500</option>
+        <option value="BATCH">BATCH - LKR 750</option>
+      </select>
+
+      <div class="price-box">
+        <b id="promotionPrice">Promotion: FREE</b>
+        <p class="small">Duration: 90 days</p>
+        <p class="small">Status after posting: APPROVED</p>
+      </div>
+
+      <button id="submitBtn" class="green" type="submit">
+        🚀 Publish Advertisement
+      </button>
+
+      <button type="reset" class="red" onclick="resetPreview()">
+        Clear Form
+      </button>
+
+    </form>
+  </div>
+
+</section>
+
+</main>
 </div>
 
 <script>
@@ -202,7 +305,17 @@ label{
 const API = "https://apebazar-admin-api.createlk.workers.dev";
 
 const GOOGLE_CLIENT_ID =
-  "582157960266-mvlpmqne90d9q7ja5vuhi3g1aspvtp86.apps.googleusercontent.com";
+"582157960266-mvlpmqne90d9q7ja5vuhi3g1aspvtp86.apps.googleusercontent.com";
+
+const PRICES = {
+  "FREE":0,
+  "URGENT":250,
+  "FEATURED":400,
+  "TOP AD":600,
+  "PREMIUM":900,
+  "SPOTLIGHT":1500,
+  "BATCH":750
+};
 
 let authToken = sessionStorage.getItem("apebazar_admin_token") || "";
 let me = null;
@@ -210,37 +323,39 @@ let googleInitialized = false;
 
 const $ = id => document.getElementById(id);
 
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-  "'": "&#39;"
+const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({
+  "&":"&amp;",
+  "<":"&lt;",
+  ">":"&gt;",
+  '"':"&quot;",
+  "'":"&#39;"
 }[c]));
 
-const money = n =>
-  "LKR " + Number(n || 0).toLocaleString("en-LK");
+const money = value =>
+  "LKR " + Number(value || 0).toLocaleString("en-LK");
 
-function notice(message, error = false) {
+function notice(message, error=false) {
   const el = $("notice");
   el.textContent = message;
   el.style.display = "block";
   el.style.background = error ? "#fee4e2" : "#dcfae6";
   el.style.color = error ? "#912018" : "#05603a";
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 
-async function api(path, options = {}) {
+/* API */
+
+async function api(path, options={}) {
   const headers = {
-    "Content-Type": "application/json",
+    "Content-Type":"application/json",
     ...(options.headers || {})
   };
 
-  if (authToken) {
+  if(authToken) {
     headers.Authorization = "Bearer " + authToken;
   }
 
-  const response = await fetch(API + path, {
+  const response = await fetch(API + path,{
     ...options,
     headers
   });
@@ -251,15 +366,12 @@ async function api(path, options = {}) {
     data = await response.json();
   } catch {}
 
-  if (response.status === 401 || response.status === 403) {
-    if (authToken && response.status === 401) {
-      logout("Your session has expired. Please sign in again.");
+  if(!response.ok) {
+    if(response.status === 401 && authToken) {
+      logout("Session expired. Please sign in again.");
     }
-    throw Error(data.error || ("Request failed: " + response.status));
-  }
 
-  if (!response.ok) {
-    throw Error(data.error || ("Request failed: " + response.status));
+    throw Error(data.error || "Request failed: " + response.status);
   }
 
   return data;
@@ -267,15 +379,15 @@ async function api(path, options = {}) {
 
 /* LOGIN */
 
-function loginSuccess(response) {
-  if (!response || !response.token) {
-    throw Error("The server did not return an administrator token.");
+function loginSuccess(result) {
+  if(!result.token) {
+    throw Error("No administrator token returned.");
   }
 
-  authToken = response.token;
-  me = response.user || {};
+  authToken = result.token;
+  me = result.user || {};
 
-  sessionStorage.setItem("apebazar_admin_token", authToken);
+  sessionStorage.setItem("apebazar_admin_token",authToken);
 
   $("login").classList.add("hidden");
   $("app").classList.remove("hidden");
@@ -284,33 +396,55 @@ function loginSuccess(response) {
   $("who").textContent = me.email || "Administrator";
   $("loginError").textContent = "";
 
-  // Open advertisements only.
-  show("ads");
+  showPage("ads");
 }
 
 async function googleCredential(response) {
-  if (!response || !response.credential) {
-    $("loginError").textContent = "Google sign-in did not return a credential.";
-    return;
-  }
-
   try {
     $("loginError").textContent = "Signing in…";
 
-    const result = await api("/api/admin/google-login", {
-      method: "POST",
-      body: JSON.stringify({
-        credential: response.credential
+    const result = await api("/api/admin/google-login",{
+      method:"POST",
+      body:JSON.stringify({
+        credential:response.credential
       })
     });
 
     loginSuccess(result);
-  } catch (error) {
+
+  } catch(error) {
     $("loginError").textContent = error.message;
   }
 }
 
-function logout(message = "") {
+function initGoogle() {
+  if(googleInitialized) return;
+
+  if(!window.google?.accounts?.id) {
+    setTimeout(initGoogle,300);
+    return;
+  }
+
+  googleInitialized = true;
+
+  google.accounts.id.initialize({
+    client_id:GOOGLE_CLIENT_ID,
+    callback:googleCredential
+  });
+
+  google.accounts.id.renderButton(
+    $("googleButton"),
+    {
+      theme:"outline",
+      size:"large",
+      text:"signin_with",
+      shape:"rectangular",
+      width:280
+    }
+  );
+}
+
+function logout(message="") {
   authToken = "";
   me = null;
 
@@ -324,285 +458,215 @@ function logout(message = "") {
   $("adList").innerHTML = "";
   $("loginError").textContent = message;
 
-  if (window.google?.accounts?.id) {
+  if(window.google?.accounts?.id) {
     google.accounts.id.disableAutoSelect();
   }
 }
 
-function initGoogle() {
-  if (googleInitialized) return;
+/* NAVIGATION */
 
-  if (!window.google?.accounts?.id) {
-    setTimeout(initGoogle, 300);
+function showPage(page) {
+  $("adsPage").classList.toggle("hidden",page !== "ads");
+  $("postPage").classList.toggle("hidden",page !== "post");
+
+  $("navAds").classList.toggle("active",page === "ads");
+  $("navPost").classList.toggle("active",page === "post");
+
+  if(page === "ads") {
+    loadAds().catch(error => notice(error.message,true));
+  }
+}
+
+/* PROMOTION PRICE */
+
+function updatePrice() {
+  const label = $("promotion").value;
+  const price = PRICES[label];
+
+  $("promotionPrice").textContent =
+    "Promotion: " + label + " · " + money(price);
+}
+
+function previewImage() {
+  const url = $("image").value.trim();
+  const img = $("imagePreview");
+
+  img.style.display = "none";
+
+  if(!url || !/^https:\/\//i.test(url)) return;
+
+  img.onload = () => img.style.display = "block";
+  img.onerror = () => img.style.display = "none";
+  img.src = url;
+}
+
+function resetPreview() {
+  $("imagePreview").style.display = "none";
+  $("imagePreview").removeAttribute("src");
+  setTimeout(updatePrice,0);
+}
+
+/* POST ADVERTISEMENT */
+
+async function postAd(event) {
+  event.preventDefault();
+
+  const button = $("submitBtn");
+
+  const data = {
+    title:$("title").value.trim(),
+    description:$("description").value.trim(),
+    category:$("category").value.trim(),
+    district:$("district").value.trim(),
+    city:$("city").value.trim(),
+    price_lkr:Number($("price").value || 0),
+    image_url:$("image").value.trim(),
+    promotion_label:$("promotion").value
+  };
+
+  if(!data.title) {
+    notice("Please enter an advertisement title.",true);
     return;
   }
 
-  googleInitialized = true;
+  if(!Number.isFinite(data.price_lkr) || data.price_lkr < 0) {
+    notice("Please enter a valid price.",true);
+    return;
+  }
 
-  google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: googleCredential
-  });
+  if(data.image_url && !/^https:\/\//i.test(data.image_url)) {
+    notice("Image URL must use HTTPS.",true);
+    return;
+  }
 
-  google.accounts.id.renderButton(
-    $("googleButton"),
-    {
-      theme: "outline",
-      size: "large",
-      text: "signin_with",
-      shape: "rectangular",
-      width: 280
-    }
-  );
+  if(!confirm(
+    "Publish this advertisement immediately?\n\n" +
+    "Promotion: " + data.promotion_label +
+    "\nDuration: 90 days"
+  )) return;
+
+  button.disabled = true;
+  button.textContent = "Publishing…";
+
+  try {
+    const result = await api("/api/admin/ads/create",{
+      method:"POST",
+      body:JSON.stringify(data)
+    });
+
+    notice(
+      "Advertisement published successfully. ID: " + result.id
+    );
+
+    $("adForm").reset();
+    $("imagePreview").style.display = "none";
+    updatePrice();
+
+    showPage("ads");
+
+  } catch(error) {
+    notice(error.message,true);
+
+  } finally {
+    button.disabled = false;
+    button.textContent = "🚀 Publish Advertisement";
+  }
 }
 
-/* NAVIGATION: ADVERTISEMENTS ONLY */
-
-function show(page) {
-  if (page !== "ads") return;
-
-  document.querySelectorAll(".page").forEach(el => {
-    el.classList.add("hidden");
-  });
-
-  $("ads").classList.remove("hidden");
-
-  loadAds().catch(error => notice(error.message, true));
-}
-
-/* LOAD ADVERTISEMENTS */
+/* LOAD ADS */
 
 async function loadAds() {
   const list = $("adList");
-  const filter = $("adFilter").value;
 
   list.innerHTML = "<p>Loading advertisements…</p>";
 
   try {
-    const data = await api(
-      "/api/admin/ads?status=" + encodeURIComponent(filter)
+    const result = await api("/api/admin/ads");
+    const filter = $("adFilter").value;
+
+    const ads = (result.ads || []).filter(ad =>
+      filter === "ALL" || ad.status === filter
     );
 
-    const ads = data.ads || [];
-
-    if (!ads.length) {
+    if(!ads.length) {
       list.innerHTML = "<p>No advertisements found.</p>";
       return;
     }
 
-    list.innerHTML = ads.map(a => {
-      const id = Number(a.id);
+    list.innerHTML = ads.map(ad => `
+      <article class="item">
+        <h3>${esc(ad.title)}</h3>
 
-      if (!Number.isSafeInteger(id) || id < 0) {
-        return "";
-      }
+        <p>${esc(ad.description)}</p>
 
-      const status = String(a.status || "").toUpperCase();
+        <p>
+          <b>${money(ad.price_lkr)}</b>
+          · ${esc(ad.category)}
+          · ${esc(ad.district)}
+          · ${esc(ad.city)}
+        </p>
 
-      return `
-        <div class="item">
-          <h3>${esc(a.title || "Untitled advertisement")}</h3>
+        <p>
+          <span class="badge">${esc(ad.promotion_label)}</span>
+          <span class="badge">${esc(ad.status)}</span>
+        </p>
 
-          <p>${esc(a.description || "")}</p>
+        <p class="small">
+          Created: ${esc(ad.created_at)}
+          <br>
+          Expires: ${esc(ad.expires_at)}
+        </p>
 
+        ${ad.image_url ? `
           <p>
-            <b>${money(a.price_lkr)}</b>
-            · ${esc(a.category_name || "Uncategorized")}
-            · ${esc(a.district_name || "")}
-            ${esc(a.city_name || "")}
+            <a href="${esc(ad.image_url)}"
+               target="_blank"
+               rel="noopener noreferrer">
+              View image
+            </a>
           </p>
+        ` : ""}
 
-          <p>
-            Status:
-            <span class="badge">${esc(a.status || "UNKNOWN")}</span>
-            · ID ${esc(a.id)}
-          </p>
+        <p class="small">Advertisement ID: ${esc(ad.id)}</p>
+      </article>
+    `).join("");
 
-          ${a.image_url ? `
-            <p>
-              <a href="${esc(a.image_url)}"
-                 target="_blank"
-                 rel="noopener noreferrer">
-                View advertisement image
-              </a>
-            </p>
-          ` : ""}
-
-          <details>
-            <summary>Edit advertisement</summary>
-
-            <label for="title${id}">Title</label>
-            <input
-              id="title${id}"
-              value="${esc(a.title || "")}"
-              maxlength="250"
-            >
-
-            <label for="desc${id}">Description</label>
-            <textarea id="desc${id}">${esc(a.description || "")}</textarea>
-
-            <label for="price${id}">Price (LKR)</label>
-            <input
-              id="price${id}"
-              type="number"
-              min="0"
-              step="0.01"
-              value="${Number(a.price_lkr || 0)}"
-            >
-
-            <button onclick="editAd(${id})">
-              Save Changes
-            </button>
-          </details>
-
-          <div class="actions">
-            ${status !== "APPROVED" ? `
-              <button class="green"
-                onclick="moderateAd(${id}, 'APPROVE')">
-                Approve
-              </button>
-            ` : ""}
-
-            ${status !== "REJECTED" ? `
-              <button class="red"
-                onclick="rejectAd(${id})">
-                Reject
-              </button>
-            ` : ""}
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    if (!list.innerHTML.trim()) {
-      list.innerHTML = "<p>No valid advertisements found.</p>";
-    }
-
-  } catch (error) {
+  } catch(error) {
     list.innerHTML = `
       <p role="alert">${esc(error.message)}</p>
       <button onclick="loadAds()">Try Again</button>
     `;
+
     throw error;
   }
 }
 
-/* EDIT ADVERTISEMENT */
-
-async function editAd(id) {
-  const title = $("title" + id).value.trim();
-  const description = $("desc" + id).value.trim();
-  const price = Number($("price" + id).value);
-
-  if (!title) {
-    notice("Please enter an advertisement title.", true);
-    return;
-  }
-
-  if (!Number.isFinite(price) || price < 0) {
-    notice("Please enter a valid advertisement price.", true);
-    return;
-  }
-
-  try {
-    await api("/api/admin/ads/" + id, {
-      method: "PUT",
-      body: JSON.stringify({
-        title,
-        description,
-        price_lkr: price
-      })
-    });
-
-    notice("Advertisement updated successfully.");
-    await loadAds();
-
-  } catch (error) {
-    notice(error.message, true);
-  }
-}
-
-/* APPROVE ADVERTISEMENT */
-
-async function moderateAd(id, action) {
-  if (action !== "APPROVE") return;
-
-  if (!confirm("Are you sure you want to approve this advertisement?")) {
-    return;
-  }
-
-  try {
-    await api("/api/admin/ads/" + id + "/moderate", {
-      method: "POST",
-      body: JSON.stringify({ action })
-    });
-
-    notice("Advertisement approved successfully.");
-    await loadAds();
-
-  } catch (error) {
-    notice(error.message, true);
-  }
-}
-
-/* REJECT ADVERTISEMENT */
-
-async function rejectAd(id) {
-  const reason = prompt("Enter rejection reason:");
-
-  if (reason === null) return;
-
-  if (!reason.trim()) {
-    notice("Please provide a rejection reason.", true);
-    return;
-  }
-
-  if (!confirm("Are you sure you want to reject this advertisement?")) {
-    return;
-  }
-
-  try {
-    await api("/api/admin/ads/" + id + "/moderate", {
-      method: "POST",
-      body: JSON.stringify({
-        action: "REJECT",
-        reason: reason.trim()
-      })
-    });
-
-    notice("Advertisement rejected successfully.");
-    await loadAds();
-
-  } catch (error) {
-    notice(error.message, true);
-  }
-}
-
-/* RESTORE SAVED SESSION */
+/* RESTORE SESSION */
 
 async function restoreSession() {
-  if (!authToken) return;
+  if(!authToken) return;
 
   try {
-    // Verify that the saved token is still valid.
-    await api("/api/admin/dashboard");
+    await api("/api/admin/ads");
 
     loginSuccess({
-      token: authToken,
-      user: { email: "Administrator" }
+      token:authToken,
+      user:{email:"Administrator"}
     });
 
-  } catch (error) {
-    if (authToken) {
-      logout("Please sign in with an authorized administrator account.");
+  } catch(error) {
+    if(authToken) {
+      logout("Please sign in again.");
     }
   }
 }
 
 /* START */
 
+updatePrice();
 initGoogle();
 restoreSession();
+
 </script>
 
 </body>
